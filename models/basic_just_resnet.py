@@ -10,7 +10,7 @@ from torch import nn
 
 from models.backbone.resnet import *
 
-__all__ = ['ResNet50','conv']
+__all__ = ['ResNet50']
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -56,13 +56,16 @@ def weight_init_kaiming(m):
 
 class ResNet50(nn.Module):
 
-    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, neck_feat = None, neck="no",):
+    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, spatial_method,
+                 temporal_method, neck_feat = None, neck="no",):
         super(ResNet50,self).__init__()
 
         self.feat_dim = 2048
         self.num_classes = num_classes
         self.neck = neck
         self.neck_feat = neck_feat
+        self.spatial_method = spatial_method
+        self.temporal_method = temporal_method
 
         self.base = ResNet()
         
@@ -83,20 +86,25 @@ class ResNet50(nn.Module):
         feat = self.base(x)
         feat  = feat.view(b*t,self.feat_dim,feat.size(2),feat.size(3))
 
-        feat = F.max_pool2d(feat, feat.size()[2:])
+        if self.spatial_method == 'max':
+            feat = F.max_pool2d(feat, feat.size()[2:])
+
+        elif self.spatial_method == 'avg':
+            feat = F.avg_pool2d(feat, feat.size()[2:])
+
         feat = feat.view(b, t, -1)
-        feat = feat.mean(1)
+
+        if self.temporal_method == 'max':
+            feat, _ = feat.max(1)
+        elif self.temporal_method == 'avg':
+            feat = feat.mean(1)
         bn_feature = self.bottleneck(feat)
 
         if self.training:
             cls_score = self.classifier(bn_feature)
             return cls_score,bn_feature
         else:
-            return feat, bn_feature, pids, camids
-
-
-
-
+            return bn_feature, pids, camids
 
 
 

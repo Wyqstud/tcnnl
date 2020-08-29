@@ -69,6 +69,31 @@ def pil_loader(path):
         with Image.open(f) as img:
             return img.convert('RGB')
 
+def produce_out(imgs_path,seq_len, stride, sample_method='random'):
+    img_len = len(imgs_path)
+    frame_indices = list(range(img_len))
+    rand_end = max(0, img_len - seq_len * stride  -1)
+    begin_index = random.randint(0, rand_end)
+    end_index = min(begin_index + seq_len * stride, img_len)
+    indices = frame_indices[begin_index:end_index]
+
+    if sample_method == 'random':
+
+        re_indices= []
+        for i in range(0, seq_len * stride, stride):
+            add_arg = random.randint(0, stride-1)
+            re_indices.append(indices[i + add_arg])
+        re_indices = np.array(re_indices)
+
+        out = []
+        for index in re_indices:
+            out.append(imgs_path[int(index)])
+
+    elif sample_method == 'fix':
+
+        out = imgs_path[begin_index:end_index:stride]
+
+    return out
 
 class VideoDataset(Dataset):
     """Video Person ReID Dataset.
@@ -78,7 +103,8 @@ class VideoDataset(Dataset):
 
     def __init__(self, dataset, seq_len=15, sample='evenly',
                  transform=None, max_seq_len=200, dataset_name="mars",
-                 get_loader = get_default_video_loader
+                 get_loader = get_default_video_loader, transform_method = None,
+                 sampler_method = None,
                  ):
 
         self.dataset = dataset
@@ -88,6 +114,8 @@ class VideoDataset(Dataset):
         self.max_seq_len = max_seq_len
         self.dataset_name = dataset_name
         self.loader = get_loader()
+        self.transform_method = transform_method
+        self.samler_method = sampler_method
 
     def __len__(self):
         return len(self.dataset)
@@ -132,7 +160,10 @@ class VideoDataset(Dataset):
                 cache_img_path.append(img_path)
 
             imgs = self.loader(cache_img_path)
-            imgs = self.transform(imgs)
+            if self.transform_method == 'consecutive':
+                imgs = self.transform(imgs)
+            elif self.transform_method == 'interval':
+                imgs = [self.transform(img) for img in imgs]
             imgs = torch.stack(imgs,0)
             # imgs = vutil.make_grid(imgs, nrow=imgs.shape[0], normalize=True, scale_each=True)
             # vutil.save_image(imgs, 'now_trans_test.png')
@@ -225,25 +256,30 @@ class VideoDataset(Dataset):
             stride = 8
 
             if len(img_paths) >= self.seq_len * stride :
-                rand_end = len(img_paths) - (self.seq_len - 1) * stride - 1
-                begin_index = random.randint(0, rand_end)
-                end_index = begin_index + (self.seq_len - 1 ) * stride + 1
-                out = img_paths[begin_index:end_index:stride]
-            elif len(img_paths) >= self.seq_len:
-                index = np.random.choice(len(img_paths),size=self.seq_len,replace=False)
-                index.sort()
-                out = [img_paths[index[i]] for i in range(self.seq_len)]
+                new_stride = stride
+                out = produce_out(img_paths, self.seq_len, new_stride, self.samler_method)
+
+            elif len(img_paths) >= self.seq_len * int(stride/2):
+                new_stride = int(stride/2)
+                out = produce_out(img_paths, self.seq_len, new_stride, self.sampler_method)
+
+            elif len(img_paths) >= self.seq_len * int(stride/4):
+                new_stride = int(stride/4)
+                out = produce_out(img_paths, self.seq_len, new_stride, self.sampler_method)
+
             else:
                 index = np.random.choice(len(img_paths), size=self.seq_len,replace=True)
                 index.sort()
                 out = [img_paths[index[i]] for i in range(self.seq_len)]
 
             clip = self.loader(out)
-            clip = self.transform(clip)
+            if self.transform_method == 'consecutive':
+                clip = self.transform(clip)
+            else:
+                clip = [self.transform(img) for img in clip]
             clip = torch.stack(clip, 0)
 
             return clip, pid, camid
-
 
         else:
             raise KeyError("Unknown sample method: {}. Expected one of {}".format(self.sample, self.sample_methods))

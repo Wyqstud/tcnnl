@@ -77,16 +77,14 @@ def build_evaluate(qf, gf, method):
     return q_g_dist
 
 
-def evaluate_reranking(qf, bn_qf, q_pids, q_camids, gf, bn_gf, g_pids, g_camids, ranks, cal_method):
+def evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cal_method):
 
-    bn_q_g_dist = build_evaluate(bn_qf, bn_gf,cal_method)
     q_g_dist = build_evaluate(qf, gf, cal_method)
 
     print("Computing CMC and mAP")
     be_cmc, be_mAP = evaluate(q_g_dist, q_pids, g_pids, q_camids, g_camids)
-    af_cmc, af_mAP = evaluate(bn_q_g_dist, q_pids, g_pids, q_camids, g_camids)
 
-    print("Be feature Results ----------")
+    print("feature Results ----------")
     print("mAP: {:.1%}".format(be_mAP))
     print("CMC curve")
     for r in ranks:
@@ -94,12 +92,6 @@ def evaluate_reranking(qf, bn_qf, q_pids, q_camids, gf, bn_gf, g_pids, g_camids,
     print("------------------")
     print()
 
-    print("Af Feature Results ----------")
-    print("mAP: {:.1%}".format(af_mAP))
-    print("CMC curve")
-    for r in ranks:
-        print("Rank-{:<3}: {:.1%}".format(r, af_cmc[r - 1]))
-    print("------------------")
     #
     # q_q_dist = q_q_dist.cpu().numpy()
     # g_g_dist = g_g_dist.cpu().numpy()

@@ -36,6 +36,18 @@ parser.add_argument(
 )
 parser.add_argument("opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
+parser.add_argument('--model_spatial_pool', type=str, default='max', choices=['max','avg'],
+                    help='how to aggerate spatial feature map')
+parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'],
+                    help='how to aggerate temporal feaure vector')
+parser.add_argument('--train_sampler', type=str, default='Random_interval',help='train sampler',
+                    choices=['random','Random_interval'])
+parser.add_argument('--test_sampler', type=str, default='Begin_interval',help='test sampler',
+                    choices=['dense', 'Begin_interval'])
+parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'],
+                    help='transform method is tracklet level or frame level')
+parser.add_argument('--sampler_method', type=str, default='random', choices=['random', 'fix'])
+
 
 args_ = parser.parse_args()
 
@@ -78,22 +90,35 @@ def main():
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
     model = models.init_model(name=cfg.MODEL.ARCH, num_classes=625, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
-                             model_name=cfg.MODEL.NAME, seq_len = cfg.DATASETS.SEQ_LEN)
+                             model_name=cfg.MODEL.NAME, seq_len = cfg.DATASETS.SEQ_LEN,
+                              spatial_method=args_.model_spatial_pool, temporal_method = args_.model_temporal_pool)
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
+    if args_.transform_method == 'consecutive':
 
+        transform_train = T.Compose([
+            # T.resize(cfg.INPUT.SIZE_TRAIN),
+            T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
+            T.random_horizontal_flip(p=cfg.INPUT.PROB),
+            T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
+            T.random_crop(cfg.INPUT.SIZE_TRAIN),           # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
+            T.to_tensor(),
+            T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
+        ])
 
-    transform_train = T.Compose([
-        # T.resize(cfg.INPUT.SIZE_TRAIN),
-        T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-        T.random_horizontal_flip(p=cfg.INPUT.PROB),
-        T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-        T.random_crop(cfg.INPUT.SIZE_TRAIN),           # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
-        T.to_tensor(),
-        T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
-    ])
+    elif args_.transform_method == 'interval':
+
+        transform_train = T.Compose([
+            T.Resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
+            T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
+            T.Pad(cfg.INPUT.PADDING),
+            T.RandomCrop(cfg.INPUT.SIZE_TRAIN),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            T.RandomErasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
+        ])
 
 
     transform_test = T.Compose([
@@ -105,26 +130,43 @@ def main():
     pin_memory = True if use_gpu else False
 
     trainloader = DataLoader(
-        VideoDataset(dataset.train, seq_len=cfg.DATASETS.SEQ_LEN, sample=cfg.DATASETS.TRAIN_SAMPLE_METHOD, transform=transform_train,
-                     dataset_name=cfg.DATASETS.NAME),
+        VideoDataset(dataset.train, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.train_sampler, transform=transform_train,
+                     dataset_name=cfg.DATASETS.NAME, transform_method=args_.transform_method, sampler_method=args_.sampler_method),
         sampler=RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE),
         batch_size=cfg.SOLVER.SEQS_PER_BATCH, num_workers=cfg.DATALOADER.NUM_WORKERS,
         pin_memory=pin_memory, drop_last=True
     )
 
-    queryloader = DataLoader(
-        VideoDataset(dataset.query, seq_len=cfg.DATASETS.SEQ_LEN, sample=cfg.DATASETS.TEST_SAMPLE_METHOD, transform=transform_test,
-                     max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
-        batch_size=cfg.TEST.SEQS_PER_BATCH , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
-        pin_memory=pin_memory, drop_last=False
-    )
+    if args_.test_sampler == 'dense':
+        queryloader = DataLoader(
+            VideoDataset(dataset.query, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler, transform=transform_test,
+                         max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
+            batch_size=1 , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            pin_memory=pin_memory, drop_last=False
+        )
 
-    galleryloader = DataLoader(
-        VideoDataset(dataset.gallery, seq_len=cfg.DATASETS.SEQ_LEN, sample=cfg.DATASETS.TEST_SAMPLE_METHOD, transform=transform_test,
-                     max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
-        batch_size=cfg.TEST.SEQS_PER_BATCH , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
-        pin_memory=pin_memory, drop_last=False,
-    )
+        galleryloader = DataLoader(
+            VideoDataset(dataset.gallery, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler, transform=transform_test,
+                         max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
+            batch_size=1 , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            pin_memory=pin_memory, drop_last=False,
+        )
+    else:
+        queryloader = DataLoader(
+            VideoDataset(dataset.query, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler,
+                         transform=transform_test,
+                         max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
+            batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            pin_memory=pin_memory, drop_last=False
+        )
+
+        galleryloader = DataLoader(
+            VideoDataset(dataset.gallery, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler,
+                         transform=transform_test,
+                         max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
+            batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            pin_memory=pin_memory, drop_last=False,
+        )
     
     model = nn.DataParallel(model)
     model.cuda()
@@ -208,7 +250,7 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
 
     with torch.no_grad():
         model.eval()
-        bn_qf, qf, q_pids, q_camids = [], [], [], []
+        qf, q_pids, q_camids =  [], [], []
         query_pathes = []
         for batch_idx, (imgs, pids, camids, img_path) in enumerate(tqdm(queryloader)):
             query_pathes.append(img_path[0])
@@ -218,34 +260,32 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
                 pids = pids.cuda()
                 camids = camids.cuda()
 
+
             if len(imgs.size()) == 6:
+                method = 'dense'
                 b, n, s, c, h, w = imgs.size()
                 assert (b == 1)
                 imgs = imgs.view(b * n, s, c, h, w)
+            else:
+                method = None
 
-            features, BN_features, pids, camids = model(imgs, pids, camids)
+            features, pids, camids = model(imgs, pids, camids)
             q_pids.extend(pids.data.cpu())
             q_camids.extend(camids.data.cpu())
             del pids
             del camids
             
             features = features.data.cpu()
-            BN_features = BN_features.data.cpu()
             torch.cuda.empty_cache()
             features = features.view(-1, features.size(1))
-            BN_features = BN_features.view(-1, BN_features.size(1))
 
-            if len(imgs.size()) == 6:
-                features = torch.mean(features, 0)
-                BN_features = torch.mean(BN_features, 0)
+            if method == 'dense':
+                features = torch.mean(features, 0,keepdim=True)
 
-            bn_qf.append(BN_features)
             qf.append(features)
             del features
-            del BN_features
             del imgs
 
-        bn_qf = torch.cat(bn_qf,0)
         qf = torch.cat(qf,0)
         q_pids = np.asarray(q_pids)
         q_camids = np.asarray(q_camids)
@@ -254,7 +294,7 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
 
         print("Extracted features for query set, obtained {}-by-{} matrix".format(qf.size(0), qf.size(1)))
 
-        gf, bn_gf, g_pids, g_camids = [], [], [], []
+        gf, g_pids, g_camids = [], [], []
         gallery_pathes = []
         for batch_idx, (imgs, pids, camids, img_path) in enumerate(tqdm(galleryloader)):
             gallery_pathes.append(img_path[0])
@@ -264,34 +304,28 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
                 camids = camids.cuda()
 
             if len(imgs.size()) == 6:
+                method = 'dense'
                 b, n, s, c, h, w = imgs.size()
                 assert (b == 1)
                 imgs = imgs.view(b * n, s, c, h, w)
+            else:
+                method = None
 
-            features, BN_features, pids, camids = model(imgs, pids, camids)
+            features, pids, camids = model(imgs, pids, camids)
             features = features.data.cpu()
-            BN_features = BN_features.data.cpu()
             torch.cuda.empty_cache()
             features = features.view(-1, features.size(1))
-            BN_features = BN_features.view(-1, features.size(1))
 
-            if len(imgs.size()) == 6:
-                if pool == 'avg':
-                    features = torch.mean(features, 0)
-                    BN_features = torch.mean(BN_features, 0)
-                else:
-                    features, _ = torch.max(features, 0)
-                    BN_features, _ = torch.max(BN_features, 0)
+            if method == 'dense':
+                features = torch.mean(features, 0, keepdim=True)
+
 
             g_pids.extend(pids.data.cpu())
             g_camids.extend(camids.data.cpu())
             gf.append(features)
-            bn_gf.append(BN_features)
             del features
-            del BN_features
 
         gf = torch.cat(gf,0)
-        bn_gf = torch.cat(bn_gf,0)
         g_pids = np.asarray(g_pids)
         g_camids = np.asarray(g_camids)
 
@@ -299,7 +333,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
         if dataset == 'mars' and is_cat == 'yes':
             # gallery set must contain query set, otherwise 140 query imgs will not have ground truth.
             gf = torch.cat((qf, gf), 0)
-            bn_gf = torch.cat((bn_qf,bn_gf),0)
             g_pids = np.append(q_pids, g_pids)
             g_camids = np.append(q_camids, g_camids)
 
@@ -315,7 +348,7 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
             g_camids = np.concatenate([g_camids, q_camids], 0)
             metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
         else:
-            metrics = evaluate_reranking(qf, bn_qf, q_pids, q_camids, gf, bn_gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
+            metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
         return metrics
 
 
