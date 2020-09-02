@@ -76,7 +76,6 @@ def build_evaluate(qf, gf, method):
 
     return q_g_dist
 
-
 def evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cal_method):
 
     q_g_dist = build_evaluate(qf, gf, cal_method)

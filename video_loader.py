@@ -115,7 +115,7 @@ class VideoDataset(Dataset):
         self.dataset_name = dataset_name
         self.loader = get_loader()
         self.transform_method = transform_method
-        self.samler_method = sampler_method
+        self.sampler_method = sampler_method
 
     def __len__(self):
         return len(self.dataset)
@@ -145,7 +145,7 @@ class VideoDataset(Dataset):
 #                 if len(indices) >= 2 * self.seq_len:
 #                     break
 #                 indices.append(end_index - 1)
-                
+
             re_indices = []
             for i in range(0, len(indices), 2):
                 add_arg = random.randint(0,1)
@@ -257,7 +257,7 @@ class VideoDataset(Dataset):
 
             if len(img_paths) >= self.seq_len * stride :
                 new_stride = stride
-                out = produce_out(img_paths, self.seq_len, new_stride, self.samler_method)
+                out = produce_out(img_paths, self.seq_len, new_stride, self.sampler_method)
 
             elif len(img_paths) >= self.seq_len * int(stride/2):
                 new_stride = int(stride/2)
@@ -269,6 +269,27 @@ class VideoDataset(Dataset):
 
             else:
                 index = np.random.choice(len(img_paths), size=self.seq_len,replace=True)
+                index.sort()
+                out = [img_paths[index[i]] for i in range(self.seq_len)]
+
+            clip = self.loader(out)
+            if self.transform_method == 'consecutive':
+                clip = self.transform(clip)
+            else:
+                clip = [self.transform(img) for img in clip]
+            clip = torch.stack(clip, 0)
+
+            return clip, pid, camid
+
+        elif self.sample == 'Random_choice':
+            img_paths = list(img_paths)
+
+            if len(img_paths) >= self.seq_len:
+                index = np.random.choice(len(img_paths), size=self.seq_len, replace=False)
+                index.sort()
+                out = [img_paths[index[i]] for i in range(self.seq_len)]
+            else:
+                index = np.random.choice(len(img_paths), size=self.seq_len, replace=True)
                 index.sort()
                 out = [img_paths[index[i]] for i in range(self.seq_len)]
 

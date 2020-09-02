@@ -55,7 +55,8 @@ def weight_init_classifier(m):
 
 class tem_dense(nn.Module):
 
-    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, dropout=0):
+    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, dropout=0,
+                 spatial_method = None, temporal_method = None):
         super(tem_dense, self).__init__()
         self.in_planes = 2048
         self.base = ResNet()
@@ -69,6 +70,8 @@ class tem_dense(nn.Module):
         self.plances = 1024
         self.mid_channel = int(self.plances * 0.5)
         self.dropout = dropout
+        self.spatial_method = spatial_method
+        self.temporal_method = temporal_method
 
         self.avg_2d = nn.AdaptiveAvgPool2d((1, 1))
         self.relu = nn.ReLU(inplace=True)
@@ -87,11 +90,14 @@ class tem_dense(nn.Module):
         self.cat_conv = nn.Conv1d(in_channels=3, out_channels=1, kernel_size=1)
 
         t = seq_len
-        self.layer1 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel, seq_len = t / 2)
+        self.layer1 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel,
+                                seq_len = t / 2, spatial_method=self.spatial_method)
         t = t / 2
-        self.layer2 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel, seq_len = t / 2)
+        self.layer2 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel,
+                                seq_len = t / 2,spatial_method=self.spatial_method)
         t = t / 2
-        self.layer3 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel, seq_len = t / 2)
+        self.layer3 = gap_block(inplanes=self.plances, mid_planes=self.mid_channel,
+                                seq_len = t / 2,spatial_method=self.spatial_method)
 
         self.bottleneck = nn.BatchNorm1d(self.plances)
         self.classifier = nn.Linear(self.plances, self.num_classes, bias=False)
@@ -129,7 +135,7 @@ class tem_dense(nn.Module):
 
         if self.training:
             cls_score_list.append(self.classifier(BN_feature_ord3))
-            return cls_score_list, feature_list
+            return cls_score_list, BN_feature_ord3
         else:
-            return feature_ord3, BN_feature_ord3, pids, camids
+            return BN_feature_ord3, pids, camids
 

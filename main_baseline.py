@@ -31,22 +31,20 @@ from torch.optim import lr_scheduler
 torch.cuda.empty_cache()
 
 parser = argparse.ArgumentParser(description="ReID Baseline Training")
-parser.add_argument(
-    "--config_file", default="./configs/softmax_triplet.yml", help="path to config file", type=str
-)
+parser.add_argument("--config_file", default="./configs/softmax_triplet.yml", help="path to config file", type=str)
 parser.add_argument("opts", help="Modify config options using the command-line", default=None,
                     nargs=argparse.REMAINDER)
-parser.add_argument('--model_spatial_pool', type=str, default='max', choices=['max','avg'],
-                    help='how to aggerate spatial feature map')
-parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'],
-                    help='how to aggerate temporal feaure vector')
-parser.add_argument('--train_sampler', type=str, default='Random_interval',help='train sampler',
-                    choices=['random','Random_interval'])
-parser.add_argument('--test_sampler', type=str, default='Begin_interval',help='test sampler',
-                    choices=['dense', 'Begin_interval'])
-parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'],
-                    help='transform method is tracklet level or frame level')
-parser.add_argument('--sampler_method', type=str, default='random', choices=['random', 'fix'])
+parser.add_argument('--arch', type=str, default='ResNet50', choices=['ResNet50', 'tem_dense'])
+parser.add_argument('--model_spatial_pool', type=str, default='max', choices=['max','avg'], help='how to aggerate spatial feature map')
+parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate temporal feaure vector')
+parser.add_argument('--train_sampler', type=str, default='Random_interval', help='train sampler', choices=['random','Random_interval','Random_choice'])
+parser.add_argument('--test_sampler', type=str, default='Begin_interval', help='test sampler', choices=['dense', 'Begin_interval'])
+parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'], help='transform method is tracklet level or frame level')
+parser.add_argument('--sampler_method', type=str, default='fix', choices=['random', 'fix'])
+parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['cosine','euclidean'])
+parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
+parser.add_argument('--is_cat', type=str, default='yes', choices=['yes','no'], help='gallery set = gallery set + query set')
+
 
 
 args_ = parser.parse_args()
@@ -74,7 +72,12 @@ def main():
     else:
         sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_test.txt'))
 
-    print("==========\nConfigs:{}\n==========".format(cfg))
+    print("=========================\nConfigs:{}\n=========================".format(cfg))
+    s = str(args_).split(", ")[1:]
+    print("Fine-tuning detail:")
+    for i in range(len(s)):
+        print(s[i])
+    print("=========================")
 
     if use_gpu:
         print("Currently using GPU {}".format(cfg.MODEL.DEVICE_ID))
@@ -89,7 +92,7 @@ def main():
     dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=cfg.DATASETS.NAME)
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
-    model = models.init_model(name=cfg.MODEL.ARCH, num_classes=625, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
+    model = models.init_model(name=args_.arch, num_classes=625, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
                              model_name=cfg.MODEL.NAME, seq_len = cfg.DATASETS.SEQ_LEN,
                               spatial_method=args_.model_spatial_pool, temporal_method = args_.model_temporal_pool)
 
@@ -102,7 +105,7 @@ def main():
             T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
             T.random_horizontal_flip(p=cfg.INPUT.PROB),
             T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-            T.random_crop(cfg.INPUT.SIZE_TRAIN),           # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
+            T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
             T.to_tensor(),
             T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
@@ -173,7 +176,7 @@ def main():
 
     start_time = time.time()
     xent = CrossEntropyLabelSmooth(num_classes=dataset.num_train_pids)
-    tent = TripletLoss(cfg.SOLVER.MARGIN)
+    tent = TripletLoss(cfg.SOLVER.MARGIN, distance=args_.triplet_distance)
 
     optimizer = make_optimizer(cfg, model)
     scheduler = WarmupMultiStepLR(optimizer, cfg.SOLVER.STEPS, cfg.SOLVER.GAMMA, cfg.SOLVER.WARMUP_FACTOR,
@@ -195,7 +198,7 @@ def main():
 
         if cfg.SOLVER.EVAL_PERIOD > 0 and ((epoch + 1) % cfg.SOLVER.EVAL_PERIOD == 0 or (epoch + 1) == cfg.SOLVER.MAX_EPOCHS):
             print("==> Test")
-            metrics = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,cfg.DATASETS.NAME,cfg.TEST.IS_CAT)
+            metrics = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,cfg.DATASETS.NAME)
             rank1 = metrics[0]
             state_dict = model.state_dict()
             torch.save(state_dict, osp.join(cfg.OUTPUT_DIR, "rank1_" + str(rank1) + '_checkpoint_ep' + str(epoch + 1) + '.pth'))
@@ -246,7 +249,7 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
     return losses.avg
 
 
-def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, ranks=[1,5,10,20]):
+def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,10,20]):
 
     with torch.no_grad():
         model.eval()
@@ -272,8 +275,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
             features, pids, camids = model(imgs, pids, camids)
             q_pids.extend(pids.data.cpu())
             q_camids.extend(camids.data.cpu())
-            del pids
-            del camids
             
             features = features.data.cpu()
             torch.cuda.empty_cache()
@@ -283,8 +284,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
                 features = torch.mean(features, 0,keepdim=True)
 
             qf.append(features)
-            del features
-            del imgs
 
         qf = torch.cat(qf,0)
         q_pids = np.asarray(q_pids)
@@ -323,14 +322,12 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
             g_pids.extend(pids.data.cpu())
             g_camids.extend(camids.data.cpu())
             gf.append(features)
-            del features
 
         gf = torch.cat(gf,0)
         g_pids = np.asarray(g_pids)
         g_camids = np.asarray(g_camids)
 
-        assert (is_cat in {'yes','no'})
-        if dataset == 'mars' and is_cat == 'yes':
+        if dataset == 'mars' and args_.is_cat == 'yes':
             # gallery set must contain query set, otherwise 140 query imgs will not have ground truth.
             gf = torch.cat((qf, gf), 0)
             g_pids = np.append(q_pids, g_pids)
@@ -348,7 +345,7 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, is_cat, rank
             g_camids = np.concatenate([g_camids, q_camids], 0)
             metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
         else:
-            metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
+            metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
         return metrics
 
 

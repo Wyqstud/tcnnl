@@ -3,7 +3,7 @@ MODEL:
   PRETRAIN_PATH: '.resnet50-19c8e357.pth'
   IF_LABELSMOOTH: 'on'
   IF_WITH_CENTER: 'yes'
-  ARCH : 'ResNet50'
+  ARCH : 'tem_dense'
 #   LOCAL_RANK : [0,1]
 
 INPUT:
@@ -27,7 +27,7 @@ DATALOADER:
 
 SOLVER:
   OPTIMIZER_NAME: 'Adam'
-  MAX_EPOCHS: 440
+  MAX_EPOCHS: 520
 
   BASE_LR: 0.00035
 

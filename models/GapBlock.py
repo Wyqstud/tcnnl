@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 
 
 def weights_init_kaiming(m):
@@ -19,12 +20,13 @@ def weights_init_kaiming(m):
 
 class gap_block(nn.Module):
 
-    def __init__(self, inplanes, mid_planes, seq_len):
+    def __init__(self, inplanes, mid_planes, seq_len, spatial_method, ):
         super(gap_block, self).__init__()
 
         self.sigmoid = nn.Sigmoid()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
         self.relu = nn.ReLU(inplace=True)
+        self.spatial_method = spatial_method
 
         self.theta_channel = nn.Sequential(
             nn.Conv1d(in_channels=inplanes,out_channels=int(inplanes/8),
@@ -236,13 +238,20 @@ class gap_block(nn.Module):
         gap_feat_map = gap_feat_map.view(b * seq_len, -1, w, h)
 
         gap_feat_map = self.conv_block(gap_feat_map)
-        gap_feat_vect = self.avg(gap_feat_map).view(b, seq_len, -1)
+        if self.spatial_method == 'max':
+            gap_feat_vect = F.max_pool2d(gap_feat_map, gap_feat_map.size()[2:])
 
-        if seq_len != 1:
-            feature = self.cat_vect(gap_feat_vect)
-            feature = self.sigmoid(feature)
-        else:
-            feature = gap_feat_vect
+        elif self.spatial_method == 'avg':
+            gap_feat_vect = F.avg_pool2d(gap_feat_map, gap_feat_map.size()[2:])
+
+        # gap_feat_vect = self.avg(gap_feat_map).view(b, seq_len, -1)
+        gap_feat_vect = gap_feat_vect.view(b, seq_len, -1)
+        feature = gap_feat_vect.mean(1)
+        # if seq_len != 1:
+        #     feature = self.cat_vect(gap_feat_vect)
+        #     feature = self.sigmoid(feature)
+        # else:
+        #     feature = gap_feat_vect
 
         feature = feature.view(b, -1)
         gap_feat_map = gap_feat_map.view(b, seq_len, -1, w, h)
