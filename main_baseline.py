@@ -32,10 +32,9 @@ torch.cuda.empty_cache()
 
 parser = argparse.ArgumentParser(description="ReID Baseline Training")
 parser.add_argument("--config_file", default="./configs/softmax_triplet.yml", help="path to config file", type=str)
-parser.add_argument("opts", help="Modify config options using the command-line", default=None,
-                    nargs=argparse.REMAINDER)
-parser.add_argument('--arch', type=str, default='ResNet50', choices=['ResNet50', 'tem_dense'])
-parser.add_argument('--model_spatial_pool', type=str, default='max', choices=['max','avg'], help='how to aggerate spatial feature map')
+parser.add_argument("opts", help="Modify config options using the command-line", default=None,nargs=argparse.REMAINDER)
+parser.add_argument('--arch', type=str, default='STAM', choices=['ResNet50', 'tem_dense', 'STAM'])
+parser.add_argument('--model_spatial_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate spatial feature map')
 parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate temporal feaure vector')
 parser.add_argument('--train_sampler', type=str, default='Random_interval', help='train sampler', choices=['random','Random_interval','Random_choice'])
 parser.add_argument('--test_sampler', type=str, default='Begin_interval', help='test sampler', choices=['dense', 'Begin_interval'])
@@ -44,7 +43,14 @@ parser.add_argument('--sampler_method', type=str, default='fix', choices=['rando
 parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--is_cat', type=str, default='yes', choices=['yes','no'], help='gallery set = gallery set + query set')
-
+parser.add_argument('--feature_method', type=str, default='cat', choices=['cat', 'final'])
+parser.add_argument('--is_mutual_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_appearance_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
+parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
+parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes','no'])
 
 
 args_ = parser.parse_args()
@@ -73,7 +79,7 @@ def main():
         sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_test.txt'))
 
     print("=========================\nConfigs:{}\n=========================".format(cfg))
-    s = str(args_).split(", ")[1:]
+    s = str(args_).split(", ")
     print("Fine-tuning detail:")
     for i in range(len(s)):
         print(s[i])
@@ -93,8 +99,15 @@ def main():
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
     model = models.init_model(name=args_.arch, num_classes=625, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
-                             model_name=cfg.MODEL.NAME, seq_len = cfg.DATASETS.SEQ_LEN,
-                              spatial_method=args_.model_spatial_pool, temporal_method = args_.model_temporal_pool)
+                              model_name=cfg.MODEL.NAME, seq_len = args_.seq_len,
+                              spatial_method=args_.model_spatial_pool,
+                              temporal_method = args_.model_temporal_pool,
+                              layer_num=args_.layer_num,
+                              is_mutual_channel_attention=args_.is_mutual_channel_attention,
+                              is_mutual_spatial_attention=args_.is_mutual_spatial_attention,
+                              is_appearance_channel_attention=args_.is_appearance_channel_attention,
+                              is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
+                              )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
@@ -133,7 +146,7 @@ def main():
     pin_memory = True if use_gpu else False
 
     trainloader = DataLoader(
-        VideoDataset(dataset.train, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.train_sampler, transform=transform_train,
+        VideoDataset(dataset.train, seq_len=args_.seq_len, sample=args_.train_sampler, transform=transform_train,
                      dataset_name=cfg.DATASETS.NAME, transform_method=args_.transform_method, sampler_method=args_.sampler_method),
         sampler=RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE),
         batch_size=cfg.SOLVER.SEQS_PER_BATCH, num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -142,21 +155,21 @@ def main():
 
     if args_.test_sampler == 'dense':
         queryloader = DataLoader(
-            VideoDataset(dataset.query, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler, transform=transform_test,
+            VideoDataset(dataset.query, seq_len=args_.seq_len, sample=args_.test_sampler, transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
             batch_size=1 , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
             pin_memory=pin_memory, drop_last=False
         )
 
         galleryloader = DataLoader(
-            VideoDataset(dataset.gallery, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler, transform=transform_test,
+            VideoDataset(dataset.gallery, seq_len=args_.seq_len, sample=args_.test_sampler, transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
             batch_size=1 , shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
             pin_memory=pin_memory, drop_last=False,
         )
     else:
         queryloader = DataLoader(
-            VideoDataset(dataset.query, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler,
+            VideoDataset(dataset.query, seq_len=args_.seq_len, sample=args_.test_sampler,
                          transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
             batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -164,7 +177,7 @@ def main():
         )
 
         galleryloader = DataLoader(
-            VideoDataset(dataset.gallery, seq_len=cfg.DATASETS.SEQ_LEN, sample=args_.test_sampler,
+            VideoDataset(dataset.gallery, seq_len=args_.seq_len, sample=args_.test_sampler,
                          transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
             batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -181,8 +194,6 @@ def main():
     optimizer = make_optimizer(cfg, model)
     scheduler = WarmupMultiStepLR(optimizer, cfg.SOLVER.STEPS, cfg.SOLVER.GAMMA, cfg.SOLVER.WARMUP_FACTOR,
                                   cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.WARMUP_METHOD)
-
-#     model, optimizer = amp.initialize(model, optimizer, opt_level="O1")  # 这里是“欧一”，不是“零一”
 
     start_epoch = 0
     for epoch in range(start_epoch, cfg.SOLVER.MAX_EPOCHS):

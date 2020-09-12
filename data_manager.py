@@ -146,7 +146,6 @@ class Mars(object):
 
             # append image names with directory information
             img_paths = [osp.join(self.root, home_dir, img_name[:4], img_name) for img_name in img_names]
-
             if len(img_paths) >= min_seq_len:
                 img_paths = tuple(img_paths)
                 tracklets.append((img_paths, pid, camid))

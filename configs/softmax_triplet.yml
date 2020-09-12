@@ -69,6 +69,6 @@ TEST:
   FEAT_NORM: 'yes'
   CAlCULATION_METHOD: 'cosine'
 
-OUTPUT_DIR: '/home/wyq/exp/model_result'
+OUTPUT_DIR: '/home/wyq/exp/ablation experiment'
 
 

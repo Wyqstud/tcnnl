@@ -57,7 +57,7 @@ def weight_init_kaiming(m):
 class ResNet50(nn.Module):
 
     def __init__(self, num_classes, model_name, pretrain_choice, seq_len, spatial_method,
-                 temporal_method, neck_feat = None, neck="no",):
+                 temporal_method, neck_feat = None, neck="no", **kwargs):
         super(ResNet50,self).__init__()
 
         self.feat_dim = 2048

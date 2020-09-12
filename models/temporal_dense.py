@@ -56,7 +56,7 @@ def weight_init_classifier(m):
 class tem_dense(nn.Module):
 
     def __init__(self, num_classes, model_name, pretrain_choice, seq_len, dropout=0,
-                 spatial_method = None, temporal_method = None):
+                 spatial_method = None, temporal_method = None, **kwargs):
         super(tem_dense, self).__init__()
         self.in_planes = 2048
         self.base = ResNet()
