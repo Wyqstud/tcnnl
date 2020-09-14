@@ -281,7 +281,7 @@ class AATM(nn.Module):
             gap_feat_map.append(gap_map)
 
         gap_feat_map = torch.stack(gap_feat_map, 1)
-        gap_feat_map = gap_feat_map.view(b * seq_len, -1, w, h)
+        gap_feat_map = gap_feat_map.view(b * seq_len, -1, h, w)
         gap_feat_map = self.conv_block(gap_feat_map)
 
         if self.spatial_method == 'max':
@@ -293,7 +293,7 @@ class AATM(nn.Module):
         gap_fea_vect = gap_feat_vect.view(b, seq_len, -1)
         feature = gap_fea_vect.mean(1)
         feature = feature.view(b, -1)
-        gap_feat_map = gap_feat_map.view(b, seq_len, -1, w, h)
+        gap_feat_map = gap_feat_map.view(b, seq_len, -1, h, w)
         torch.cuda.empty_cache()
 
         return gap_feat_map, feature
