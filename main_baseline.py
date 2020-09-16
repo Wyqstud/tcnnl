@@ -232,12 +232,12 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
         optimizer.zero_grad()
         if use_gpu:
             imgs = imgs.cuda()
-        outputs, features = model(imgs)
+        outputs, frame_outputs ,features = model(imgs)
 
         if isinstance(outputs, (tuple, list)):
             xent_loss = DeepSupervision(xent, outputs, pids)
         else:
-            xent_loss = xent(outputs, pids)
+            xent_loss = xent(outputs, pids, frame_outputs)
 
         if isinstance(features, (tuple, list)):
             tent_loss = DeepSupervision(tent, features, pids)

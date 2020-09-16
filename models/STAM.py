@@ -144,9 +144,14 @@ class STAM(nn.Module):
 
         self.bottleneck = nn.BatchNorm1d(self.plances)
         self.classifier = nn.Linear(self.plances, self.num_classes, bias=False)
+        self.frame_classifer = nn.Linear(self.plances, self.num_classes, bias=False)
+        self.softmax_list = nn.Softmax(dim=2)
+        self.softmax = nn.Softmax(dim=1)
+
         self.bottleneck.bias.requires_grad_(False)
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
+        self.frame_classifer.apply(weight_init_classifier)
 
     def aggregate_feature(self, feature_list):
 
@@ -172,7 +177,7 @@ class STAM(nn.Module):
         w = feat_map.size(2)
         h = feat_map.size(3)
         feat_map = self.down_channel(feat_map)
-
+        feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
         feat_map = feat_map.view(b, t, -1, w, h)
         if self.layer_num == 3 :
 
@@ -204,12 +209,11 @@ class STAM(nn.Module):
         feature_list = []
         feature_list.append(feature)
         BN_feature = self.bottleneck(feature)
-
-        cls_score_list = []
         torch.cuda.empty_cache()
 
         if self.training:
-            cls_score_list.append(self.classifier(BN_feature))
-            return cls_score_list, BN_feature
+            cls_score = self.classifier(BN_feature)
+            frame_score = self.frame_classifer(feature_0)
+            return cls_score, frame_score, BN_feature
         else:
             return BN_feature, pids, camid

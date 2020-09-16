@@ -177,8 +177,8 @@ class AATM(nn.Module):
 
         if self.is_mutual_spatial_attention :
             embed_feat = self.Embeding(reshape_map).view(b, t, -1, h, w)
-            gamma_feat = self.gamma_temporal(reshape_map).view(b, t, -1, w * h)
-            beta_feat = self.beta_temporal(reshape_map).view(b, t, -1, w * h)
+            gamma_feat = self.gamma_temporal(reshape_map).view(b, t, -1, h * w)
+            beta_feat = self.beta_temporal(reshape_map).view(b, t, -1, h * w)
 
         if self.is_mutual_channel_attention:
             channel_para = self.theta_channel(feat_para.permute(0, 2, 1))

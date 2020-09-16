@@ -20,19 +20,45 @@ class CrossEntropyLabelSmooth(nn.Module):
         self.epsilon = epsilon
         self.use_gpu = use_gpu
         self.logsoftmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.Softmax(dim=1)
+        self.softmax_list = nn.Softmax(dim=2)
 
-    def forward(self, inputs, targets):
+    def forward(self, inputs, targets, frame_feat = None):
+
         """
         Args:
             inputs: prediction matrix (before softmax) with shape (batch_size, num_classes)
             targets: ground truth labels with shape (num_classes)
         """
+
         log_probs = self.logsoftmax(inputs)
         targets = torch.zeros(log_probs.size()).scatter_(1, targets.unsqueeze(1).data.cpu(), 1)
         if self.use_gpu: targets = targets.cuda()
         targets = Variable(targets, requires_grad=False)
         targets = (1 - self.epsilon) * targets + self.epsilon / self.num_classes
         loss = (- targets * log_probs).mean(0).sum()
+
+        if frame_feat is not None:
+            selfpace_loss = self.self_pace(inputs, frame_feat)
+        else:
+            selfpace_loss = 0
+
+        loss = loss + selfpace_loss
+
+        return loss
+
+    def self_pace(self, tracklet_feat, frame_feat, bata = 0.1):
+        tracklet_probs = self.softmax(tracklet_feat)
+        frame_probs = self.softmax_list(frame_feat)
+        max_index = torch.max(torch.max(frame_probs, 2)[0], 1)[1]
+
+        good_frame_vect = []
+        for i in range(frame_probs.size(0)):
+            good_frame_vect.append(frame_probs[i, max_index[i]])
+
+        good_frame_vect = torch.stack(good_frame_vect, 0)
+        loss = 1/2 * (-torch.log(tracklet_probs) * good_frame_vect - torch.log(good_frame_vect) * tracklet_probs)
+        loss = bata * loss.mean(0).sum()
         return loss
 
 class CenterLoss(nn.Module):
