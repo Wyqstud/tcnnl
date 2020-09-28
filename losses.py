@@ -40,12 +40,9 @@ class CrossEntropyLabelSmooth(nn.Module):
 
         if frame_feat is not None:
             selfpace_loss = self.self_pace(inputs, frame_feat)
+            return loss + selfpace_loss
         else:
-            selfpace_loss = 0
-
-        loss = loss + selfpace_loss
-
-        return loss
+            return loss
 
     def self_pace(self, tracklet_feat, frame_feat, bata = 0.1):
         tracklet_probs = self.softmax(tracklet_feat)
