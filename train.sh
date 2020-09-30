@@ -19,17 +19,18 @@
 #                        --seq_len '8'\
 #                        --is_down_channel 'yes'
 
+
 python main_baseline.py --layer_num '3'\
                         --is_mutual_spatial_attention 'yes'\
                         --is_mutual_channel_attention 'no'\
+                        --is_appearance_channel_attention 'no'\
                         --is_appearance_spatial_attention 'no'\
-                        --is_appearance_channel_attention 'yes'\
 
 python main_baseline.py --layer_num '3'\
                         --is_mutual_spatial_attention 'no'\
-                        --is_mutual_channel_attention 'yes'\
+                        --is_mutual_channel_attention 'no'\
+                        --is_appearance_spatial_attention 'no'\
                         --is_appearance_channel_attention 'no'\
-                        --is_appearance_spatial_attention 'yes'\
 
 #python main_baseline.py --layer_num '2'\
 #                        --is_mutual_spatial_attention 'no'\
