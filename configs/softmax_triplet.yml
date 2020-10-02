@@ -15,8 +15,8 @@ INPUT:
 
 DATASETS:
   SEQ_LEN: 8
-  NAME : 'mars'
-  ROOT_DIR : '/home/wyq/dataset/MARS'
+  NAME : 'duke'
+  ROOT_DIR : '/home/wyq/dataset/'
   TRAIN_SAMPLE_METHOD : "Random_interval"
   TEST_SAMPLE_METHOD : "Begin_interval"
 

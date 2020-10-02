@@ -233,7 +233,7 @@ class AATM(nn.Module):
 
              gap_map0 = para_00 * feat_map[:, idx, :, :, :] + para_01 * feat_map[:, idx+1, :, :, :]
              gap_map0 = self.relu(gap_map0)
-             gap_map0 = gap_map0 ** 3
+             gap_map0 = gap_map0 ** 2
              gap_feat_map0.append(gap_map0)
 
         gap_feat_map0 = torch.stack(gap_feat_map0, 1)

@@ -98,7 +98,7 @@ def main():
     dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=cfg.DATASETS.NAME)
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
-    model = models.init_model(name=args_.arch, num_classes=625, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
+    model = models.init_model(name=args_.arch, num_classes=dataset.num_train_pids, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
                               model_name=cfg.MODEL.NAME, seq_len = args_.seq_len,
                               spatial_method=args_.model_spatial_pool,
                               temporal_method = args_.model_temporal_pool,
