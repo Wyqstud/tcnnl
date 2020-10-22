@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/scripts
 
 #python main_baseline.py --arch 'STAM'\
 #                        --model_spatial_pool 'avg'\

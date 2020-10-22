@@ -46,6 +46,7 @@ class AATM(nn.Module):
         self.Embeding.apply(weights_init_kaiming)
 
         if self.is_mutual_spatial_attention:
+            print('Build mutual sptial attention!')
 
             self.gamma_temporal = nn.Sequential(
                 nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
@@ -84,6 +85,7 @@ class AATM(nn.Module):
             self.te_para.apply(weights_init_kaiming)
 
         if self.is_mutual_channel_attention:
+            print('Build mutual channel attention!')
 
             self.theta_channel = nn.Sequential(
                 nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 8),
@@ -108,6 +110,7 @@ class AATM(nn.Module):
             self.channel_para_1.apply(weights_init_kaiming)
 
         if self.is_appearance_spatial_attention :
+            print('Build appearance spatial attention!')
 
             self.alphi_appearance = nn.Sequential(
                 nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
@@ -146,7 +149,7 @@ class AATM(nn.Module):
             self.spa_para.apply(weights_init_kaiming)
 
         if self.is_appearance_channel_attention:
-
+            print('Build appearacne channel attention!')
             self.app_channel = nn.Sequential(
                 nn.Linear(in_features=inplanes, out_features=int(inplanes / 8)),
                 self.relu,

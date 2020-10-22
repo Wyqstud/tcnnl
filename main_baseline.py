@@ -44,13 +44,12 @@ parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['
 parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--is_cat', type=str, default='yes', choices=['yes','no'], help='gallery set = gallery set + query set')
 parser.add_argument('--feature_method', type=str, default='cat', choices=['cat', 'final'])
-parser.add_argument('--is_mutual_channel_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--is_appearance_channel_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_mutual_channel_attention', type=bool, default=True)
+parser.add_argument('--is_mutual_spatial_attention', type=bool, default=True)
+parser.add_argument('--is_appearance_channel_attention', type=bool, default=True)
+parser.add_argument('--is_appearance_spatial_attention', type=bool, default=True)
 parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
 parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
-parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes','no'])
 
 
 args_ = parser.parse_args()
@@ -339,7 +338,7 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,1
         g_pids = np.asarray(g_pids)
         g_camids = np.asarray(g_camids)
 
-        if dataset == 'mars' and args_.is_cat == 'yes':
+        if args_.is_cat == 'yes':
             # gallery set must contain query set, otherwise 140 query imgs will not have ground truth.
             gf = torch.cat((qf, gf), 0)
             g_pids = np.append(q_pids, g_pids)
@@ -350,15 +349,18 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,1
         print("Extracted features for gallery set, obtained {}-by-{} matrix".format(gf.size(0), gf.size(1)))
         print("Computing distance matrix")
 
-        if cfg.DATASETS.NAME == "duke":
-            print("gallary with query result:")
-            gf = torch.cat([gf, qf], 0)
-            g_pids = np.concatenate([g_pids, q_pids], 0)
-            g_camids = np.concatenate([g_camids, q_camids], 0)
-            metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
-        else:
-            metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
+        metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
         return metrics
+
+        # if cfg.DATASETS.NAME == "duke":
+        #     print("gallary with query result:")
+        #     gf = torch.cat([gf, qf], 0)
+        #     g_pids = np.concatenate([g_pids, q_pids], 0)
+        #     g_camids = np.concatenate([g_camids, q_camids], 0)
+        #     metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
+        # else:
+        #     metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
+        # return metrics
 
 
 if __name__ == '__main__':
