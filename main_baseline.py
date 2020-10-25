@@ -11,13 +11,14 @@ import random
 from torch.utils.data import DataLoader
 
 import data_manager
-from samplers import RandomIdentitySampler
+from samplers import RandomIdentitySampler, RandomIdentitySamplerStrongBasaline, RandomIdentitySamplerV2
 from video_loader import VideoDataset
 
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from tqdm import tqdm
+
 
 from lr_schedulers import WarmupMultiStepLR
 import transforms as T
@@ -38,18 +39,22 @@ parser.add_argument('--model_spatial_pool', type=str, default='avg', choices=['m
 parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate temporal feaure vector')
 parser.add_argument('--train_sampler', type=str, default='Random_interval', help='train sampler', choices=['random','Random_interval','Random_choice'])
 parser.add_argument('--test_sampler', type=str, default='Begin_interval', help='test sampler', choices=['dense', 'Begin_interval'])
+parser.add_argument('--sampler',type=str,default='RandomIdentitySampler', choices=['RandomIdentitySampler', 'RandomIdentitySamplerStrongBasaline', 'RandomIdentitySamplerV2'])
 parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'], help='transform method is tracklet level or frame level')
 parser.add_argument('--sampler_method', type=str, default='fix', choices=['random', 'fix'])
 parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--is_cat', type=str, default='yes', choices=['yes','no'], help='gallery set = gallery set + query set')
 parser.add_argument('--feature_method', type=str, default='cat', choices=['cat', 'final'])
-parser.add_argument('--is_mutual_channel_attention', type=bool, default=True)
-parser.add_argument('--is_mutual_spatial_attention', type=bool, default=True)
-parser.add_argument('--is_appearance_channel_attention', type=bool, default=True)
-parser.add_argument('--is_appearance_spatial_attention', type=bool, default=True)
-parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
-parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
+parser.add_argument('--is_mutual_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_appearance_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--layer_num', type=int, default=2, choices=[1, 2, 3])
+parser.add_argument('--seq_len', type=int, default=4, choices=[4, 8])
+parser.add_argument('--split_id', type=int, default=0)
+parser.add_argument('--LabelSmooth', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes', 'no'])
 
 
 args_ = parser.parse_args()
@@ -94,7 +99,7 @@ def main():
     print("Initializing dataset {}".format(cfg.DATASETS.NAME))
 
 
-    dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=cfg.DATASETS.NAME)
+    dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=cfg.DATASETS.NAME, split_id = args_.split_id)
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
     model = models.init_model(name=args_.arch, num_classes=dataset.num_train_pids, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
@@ -106,6 +111,7 @@ def main():
                               is_mutual_spatial_attention=args_.is_mutual_spatial_attention,
                               is_appearance_channel_attention=args_.is_appearance_channel_attention,
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
+                              is_down_channel = args_.is_down_channel,
                               )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
@@ -144,15 +150,23 @@ def main():
 
     pin_memory = True if use_gpu else False
 
+    if args_.sampler == 'RandomIdentitySampler':
+        video_sampler = RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE)
+    elif args_.sampler == 'RandomIdentitySamplerStrongBasaline':
+        video_sampler = RandomIdentitySamplerStrongBasaline(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE)
+    elif args_.sampler == 'RandomIdentitySampler':
+        video_sampler = RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE)
+
     trainloader = DataLoader(
         VideoDataset(dataset.train, seq_len=args_.seq_len, sample=args_.train_sampler, transform=transform_train,
                      dataset_name=cfg.DATASETS.NAME, transform_method=args_.transform_method, sampler_method=args_.sampler_method),
-        sampler=RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE),
+        sampler=video_sampler,
         batch_size=cfg.SOLVER.SEQS_PER_BATCH, num_workers=cfg.DATALOADER.NUM_WORKERS,
         pin_memory=pin_memory, drop_last=True
     )
 
     if args_.test_sampler == 'dense':
+        print('Build dense sampler')
         queryloader = DataLoader(
             VideoDataset(dataset.query, seq_len=args_.seq_len, sample=args_.test_sampler, transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
@@ -187,7 +201,13 @@ def main():
     model.cuda()
 
     start_time = time.time()
-    xent = CrossEntropyLabelSmooth(num_classes=dataset.num_train_pids)
+    if args_.LabelSmooth == 'yes':
+        print(args_.LabelSmooth)
+        print('Build LabelSmooth!')
+        xent = CrossEntropyLabelSmooth(num_classes=dataset.num_train_pids)
+    else:
+        xent = nn.CrossEntropyLoss()
+
     tent = TripletLoss(cfg.SOLVER.MARGIN, distance=args_.triplet_distance)
 
     optimizer = make_optimizer(cfg, model)
@@ -231,13 +251,13 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
         optimizer.zero_grad()
         if use_gpu:
             imgs = imgs.cuda()
-        outputs, frame_outputs ,features = model(imgs)
-        frame_outputs = None
+            pids = pids.cuda()
+        outputs, features = model(imgs)
 
         if isinstance(outputs, (tuple, list)):
             xent_loss = DeepSupervision(xent, outputs, pids)
         else:
-            xent_loss = xent(outputs, pids, frame_outputs)
+            xent_loss = xent(outputs, pids)
 
         if isinstance(features, (tuple, list)):
             tent_loss = DeepSupervision(tent, features, pids)

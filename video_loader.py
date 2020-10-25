@@ -231,9 +231,9 @@ class VideoDataset(Dataset):
                 end_index = int(interval/4) * num + 1
                 out = img_paths[0:end_index:int(interval/4)]
 
-            elif len(img_paths) >= int(interval/8) * num + 1:
-                end_index = int(interval/8) * num + 1
-                out = img_paths[0:end_index:int(interval/8)]
+            # elif len(img_paths) >= int(interval/8) * num + 1:
+            #     end_index = int(interval/8) * num + 1
+            #     out = img_paths[0:end_index:int(interval/8)]
 
             else:
                 out = img_paths[0:interval]

@@ -35,7 +35,7 @@ class Mars(object):
         min_seq_len (int): tracklet with length shorter than this value will be discarded (default: 0).
     """
 
-    def __init__(self, root, min_seq_len=0):
+    def __init__(self, root, min_seq_len=0, **kwargs):
         self.root = osp.join(root, 'MARS')
         self.train_name_path = osp.join(self.root, 'info/train_name.txt')
         self.test_name_path = osp.join(self.root, 'info/test_name.txt')
@@ -114,7 +114,7 @@ class Mars(object):
                 names.append(new_line)
         return names
 
-    def _process_data(self, names, meta_data, home_dir=None, relabel=False, min_seq_len=0):
+    def _process_data(self, names, meta_data, home_dir=None, relabel=False, min_seq_len=0, ):
         assert home_dir in ['bbox_train', 'bbox_test']
         num_tracklets = meta_data.shape[0]
         pid_list = list(set(meta_data[:,2].tolist()))

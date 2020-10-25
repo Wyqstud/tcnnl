@@ -85,7 +85,8 @@ class STAM(nn.Module):
 
         if self.dropout > 0:
             self.drop = nn.Dropout(self.dropout)
-        if self.is_down_channel :
+        if self.is_down_channel == 'yes' :
+            print('Build down channel!')
             self.down_channel = nn.Sequential(
                 nn.Conv2d(in_channels=self.in_planes, out_channels=self.plances,kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(self.plances),
@@ -96,7 +97,7 @@ class STAM(nn.Module):
 
         if self.feature_method == 'cat':
             self.cat_conv = nn.Conv1d(in_channels=self.layer_num, out_channels=1, kernel_size=1)
-            # self.cat_conv.apply(weights_init_kaiming)
+            self.cat_conv.apply(weights_init_kaiming)
 
         if self.layer_num == 3:
             t = seq_len
@@ -144,14 +145,14 @@ class STAM(nn.Module):
 
         self.bottleneck = nn.BatchNorm1d(self.plances)
         self.classifier = nn.Linear(self.plances, self.num_classes, bias=False)
-        self.frame_classifer = nn.Linear(self.plances, self.num_classes, bias=False)
+        # self.frame_classifer = nn.Linear(self.plances, self.num_classes, bias=False)
         self.softmax_list = nn.Softmax(dim=2)
         self.softmax = nn.Softmax(dim=1)
 
         self.bottleneck.bias.requires_grad_(False)
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
-        self.frame_classifer.apply(weight_init_classifier)
+        # self.frame_classifer.apply(weight_init_classifier)
 
     def aggregate_feature(self, feature_list):
 
@@ -176,8 +177,11 @@ class STAM(nn.Module):
         feat_map = self.base(x)  # (b * t, c, 16, 8)
         w = feat_map.size(2)
         h = feat_map.size(3)
-        feat_map = self.down_channel(feat_map)
-        feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
+
+        if self.is_down_channel == 'yes':
+            feat_map = self.down_channel(feat_map)
+        # feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
+
         feat_map = feat_map.view(b, t, -1, w, h)
         if self.layer_num == 3 :
 
@@ -213,7 +217,7 @@ class STAM(nn.Module):
 
         if self.training:
             cls_score = self.classifier(BN_feature)
-            frame_score = self.frame_classifer(feature_0)
-            return cls_score, frame_score, BN_feature
+
+            return cls_score, BN_feature
         else:
             return BN_feature, pids, camid

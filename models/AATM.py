@@ -45,21 +45,21 @@ class AATM(nn.Module):
         )
         self.Embeding.apply(weights_init_kaiming)
 
-        if self.is_mutual_spatial_attention:
+        if self.is_mutual_spatial_attention == 'yes':
             print('Build mutual sptial attention!')
 
             self.gamma_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes/8)),
+                nn.BatchNorm2d(int(inplanes/16)),
                 self.relu
             )
             self.gamma_temporal.apply(weights_init_kaiming)
 
             self.beta_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes/8)),
+                nn.BatchNorm2d(int(inplanes/16)),
                 self.relu
             )
             self.beta_temporal.apply(weights_init_kaiming)
@@ -84,27 +84,27 @@ class AATM(nn.Module):
             )
             self.te_para.apply(weights_init_kaiming)
 
-        if self.is_mutual_channel_attention:
+        if self.is_mutual_channel_attention == 'yes':
             print('Build mutual channel attention!')
 
             self.theta_channel = nn.Sequential(
-                nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
                 self.relu,
             )
             self.theta_channel.apply(weights_init_kaiming)
             self.channel_para_0 = nn.Sequential(
-                nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
+                nn.Linear(in_features=int(inplanes / 8), out_features=int(inplanes / 16)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
                 self.sigmoid
             )
             self.channel_para_0.apply(weights_init_kaiming)
 
             self.channel_para_1 = nn.Sequential(
-                nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
+                nn.Linear(in_features=int(inplanes / 8), out_features=int(inplanes / 16)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
                 self.sigmoid
             )
             self.channel_para_1.apply(weights_init_kaiming)
@@ -113,17 +113,17 @@ class AATM(nn.Module):
             print('Build appearance spatial attention!')
 
             self.alphi_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 8)),
+                nn.BatchNorm2d(int(inplanes / 16)),
                 self.relu
             )
             self.alphi_appearance.apply(weights_init_kaiming)
 
             self.delta_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 8)),
+                nn.BatchNorm2d(int(inplanes / 16)),
                 self.relu
             )
             self.delta_appearance.apply(weights_init_kaiming)
@@ -148,12 +148,12 @@ class AATM(nn.Module):
             )
             self.spa_para.apply(weights_init_kaiming)
 
-        if self.is_appearance_channel_attention:
+        if self.is_appearance_channel_attention == 'yes':
             print('Build appearacne channel attention!')
             self.app_channel = nn.Sequential(
-                nn.Linear(in_features=inplanes, out_features=int(inplanes / 8)),
+                nn.Linear(in_features=inplanes, out_features=int(inplanes / 16)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
                 self.sigmoid
             )
             self.app_channel.apply(weights_init_kaiming)
@@ -178,24 +178,24 @@ class AATM(nn.Module):
         feat_para = self.avg(reshape_map).view(b, t, -1)
         embed_feat = self.Embeding(reshape_map).view(b, t, -1, h, w)
 
-        if self.is_mutual_spatial_attention :
+        if self.is_mutual_spatial_attention == 'yes' :
             embed_feat = self.Embeding(reshape_map).view(b, t, -1, h, w)
             gamma_feat = self.gamma_temporal(reshape_map).view(b, t, -1, h * w)
             beta_feat = self.beta_temporal(reshape_map).view(b, t, -1, h * w)
 
-        if self.is_mutual_channel_attention:
+        if self.is_mutual_channel_attention == 'yes':
             channel_para = self.theta_channel(feat_para.permute(0, 2, 1))
 
         gap_feat_map0 = []
 
         for idx in range(0, t, 2):
 
-             if self.is_mutual_channel_attention:
+             if self.is_mutual_channel_attention == 'yes':
                  para = torch.cat((channel_para[:, :, idx], channel_para[:, :, idx + 1]), 1)
                  para_00 = self.channel_para_0(para).view(b, -1, 1, 1)
                  para_01 = self.channel_para_1(para).view(b, -1, 1, 1)
 
-             if self.is_mutual_spatial_attention:
+             if self.is_mutual_spatial_attention == 'yes':
                  embed_feat0 = embed_feat[:, idx, :, :, :]
                  gamma_feat0 = gamma_feat[:, idx, :, :].permute(0, 2, 1)
                  beta_feat0 = beta_feat[:, idx + 1, :, :]
@@ -218,15 +218,15 @@ class AATM(nn.Module):
                  para_beta = torch.cat((embed_feat1, Gs_joint1), 1)
                  para_beta = self.te_para(para_beta)
 
-             if self.is_mutual_spatial_attention and self.is_mutual_channel_attention:
+             if self.is_mutual_spatial_attention == 'yes' and self.is_mutual_channel_attention == 'yes':
                  para_00 = para_00 * para_alpha
                  para_01 = para_01 * para_beta
 
-             elif self.is_mutual_channel_attention:
+             elif self.is_mutual_channel_attention == 'yes':
                  para_00 = para_00
                  para_01 = para_01
 
-             elif self.is_mutual_spatial_attention:
+             elif self.is_mutual_spatial_attention == 'yes':
                  para_00 = para_alpha
                  para_01 = para_beta
 
@@ -243,7 +243,7 @@ class AATM(nn.Module):
         seq_len = gap_feat_map0.size(1)
         feat_vect = feat_para.view(b, t, -1)
 
-        if self.is_appearance_spatial_attention:
+        if self.is_appearance_spatial_attention == 'yes':
             embed_feat = embed_feat.view(b * t, -1, h, w)
             alphi_feat = self.alphi_appearance(reshape_map).view(b * t, -1, h * w)
             delta_feat = self.delta_appearance(reshape_map).view(b * t, -1, h * w)
@@ -260,19 +260,19 @@ class AATM(nn.Module):
         for i in range(seq_len):
             idx = 2 * i
 
-            if self.is_appearance_channel_attention:
+            if self.is_appearance_channel_attention == 'yes':
                 para_0 = self.app_channel(feat_vect[:, idx, :]).view(b, -1, 1, 1)
                 para_1 = self.app_channel(feat_vect[:, idx+1, :]).view(b, -1, 1, 1)
 
-            if self.is_appearance_spatial_attention and self.is_appearance_channel_attention:
+            if self.is_appearance_spatial_attention == 'yes' and self.is_appearance_channel_attention == 'yes':
                 para_0 = para_0 * para_spa[:, idx, :, :, :]
                 para_1 = para_1 * para_spa[:, idx+1, :, :, :]
 
-            elif self.is_appearance_channel_attention:
+            elif self.is_appearance_channel_attention == 'yes':
                 para_0 = para_0
                 para_1 = para_1
 
-            elif self.is_appearance_spatial_attention:
+            elif self.is_appearance_spatial_attention == 'yes':
                 para_0 = para_spa[:, idx, :, :, :]
                 para_1 = para_spa[:, idx+1, :, :, :]
 

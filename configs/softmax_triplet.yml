@@ -15,7 +15,7 @@ INPUT:
 
 DATASETS:
   SEQ_LEN: 8
-  NAME : 'prid'
+  NAME : 'duke'
   ROOT_DIR : '/home/wyq/dataset/'
   TRAIN_SAMPLE_METHOD : "Random_interval"
   TEST_SAMPLE_METHOD : "Begin_interval"
@@ -23,11 +23,11 @@ DATASETS:
 DATALOADER:
   SAMPLER: 'softmax_triplet'
   NUM_INSTANCE: 4
-  NUM_WORKERS: 12
+  NUM_WORKERS: 8
 
 SOLVER:
   OPTIMIZER_NAME: 'Adam'
-  MAX_EPOCHS: 520
+  MAX_EPOCHS: 500
 
   BASE_LR: 0.00035
 

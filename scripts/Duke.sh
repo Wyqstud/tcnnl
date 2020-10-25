@@ -9,11 +9,13 @@ python main_baseline.py --arch STAM\
                         --sampler_method 'random'\
                         --triplet_distance 'cosine'\
                         --test_distance 'cosine'\
-                        --is_cat 'yes'\
+                        --is_cat 'no'\
                         --feature_method 'cat'\
-                        --is_mutual_channel_attention True\
-                        --is_mutual_spatial_attention True\
-                        --is_appearance_channel_attention True\
-                        --is_appearance_spatial_attention True\
-                        --layer_num 3\
-                        --seq_len 8
+                        --is_mutual_channel_attention 'yes'\
+                        --is_mutual_spatial_attention 'yes'\
+                        --is_appearance_channel_attention 'yes'\
+                        --is_appearance_spatial_attention 'yes'\
+                        --layer_num 2\
+                        --seq_len 4\
+                        --is_down_channel 'no' \
+                        --sampler 'RandomIdentitySamplerStrongBasaline'
