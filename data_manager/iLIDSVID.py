@@ -34,16 +34,18 @@ class iLIDSVID(object):
     Args:
         split_id (int): indicates which split to use. There are totally 10 splits.
     """
-    root = '/home/wyq/exp/dataset/i-LIDS-VID'
-    dataset_url = 'http://www.eecs.qmul.ac.uk/~xiatian/iLIDS-VID/iLIDS-VID.tar'
-    data_dir = osp.join(root, 'i-LIDS-VID')
-    split_dir = osp.join(root, 'train-test people splits')
-    split_mat_path = osp.join(split_dir, 'train_test_splits_ilidsvid.mat')
-    split_path = osp.join(root, 'splits.json')
-    cam_1_path = osp.join(root, 'i-LIDS-VID/sequences/cam1')
-    cam_2_path = osp.join(root, 'i-LIDS-VID/sequences/cam2')
 
-    def __init__(self, split_id=0):
+
+    def __init__(self, root, split_id=0):
+
+        self.root = root
+        self.dataset_url = 'http://www.eecs.qmul.ac.uk/~xiatian/iLIDS-VID/iLIDS-VID.tar'
+        self.data_dir = osp.join(self.root, 'iLIDS-VID')
+        self.split_dir = osp.join(self.data_dir, 'train-test people splits')
+        self.split_mat_path = osp.join(self.split_dir, 'train_test_splits_ilidsvid.mat')
+        self.split_path = osp.join(self.data_dir, 'splits.json')
+        self.cam_1_path = osp.join(self.data_dir, 'i-LIDS-VID/sequences/cam1')
+        self.cam_2_path = osp.join(self.data_dir, 'i-LIDS-VID/sequences/cam2')
         self._download_data()
         self._check_before_run()
 

@@ -55,6 +55,7 @@ parser.add_argument('--seq_len', type=int, default=4, choices=[4, 8])
 parser.add_argument('--split_id', type=int, default=0)
 parser.add_argument('--LabelSmooth', type=str, default='yes', choices=['yes','no'])
 parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes', 'no'])
+parser.add_argument('--dataset', type=str, default='mars', choices=['mars','prid','duke','ilidsvid'])
 
 
 args_ = parser.parse_args()
@@ -99,7 +100,7 @@ def main():
     print("Initializing dataset {}".format(cfg.DATASETS.NAME))
 
 
-    dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=cfg.DATASETS.NAME, split_id = args_.split_id)
+    dataset = data_manager.init_dataset(root=cfg.DATASETS.ROOT_DIR, name=args_.dataset, split_id = args_.split_id)
     print("Initializing model: {}".format(cfg.MODEL.NAME))
 
     model = models.init_model(name=args_.arch, num_classes=dataset.num_train_pids, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
@@ -122,8 +123,8 @@ def main():
             # T.resize(cfg.INPUT.SIZE_TRAIN),
             T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
             T.random_horizontal_flip(p=cfg.INPUT.PROB),
-            T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-            T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
+            # T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
+            # T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
             T.to_tensor(),
             T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)

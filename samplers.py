@@ -53,7 +53,7 @@ class RandomIdentitySamplerStrongBasaline(Sampler):
     - batch_size (int): number of examples in a batch.
     """
 
-    def __init__(self, data_source, batch_size, num_instances):
+    def __init__(self, data_source, num_instances, batch_size=32):
         self.data_source = data_source
         self.batch_size = batch_size
         self.num_instances = num_instances
