@@ -49,17 +49,17 @@ class AATM(nn.Module):
             print('Build mutual sptial attention!')
 
             self.gamma_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/16),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes/16)),
+                nn.BatchNorm2d(int(inplanes/8)),
                 self.relu
             )
             self.gamma_temporal.apply(weights_init_kaiming)
 
             self.beta_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/16),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes/16)),
+                nn.BatchNorm2d(int(inplanes/8)),
                 self.relu
             )
             self.beta_temporal.apply(weights_init_kaiming)
@@ -88,23 +88,23 @@ class AATM(nn.Module):
             print('Build mutual channel attention!')
 
             self.theta_channel = nn.Sequential(
-                nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 16),
+                nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 8),
                           kernel_size=1, stride=1, padding=0, bias=False),
                 self.relu,
             )
             self.theta_channel.apply(weights_init_kaiming)
             self.channel_para_0 = nn.Sequential(
-                nn.Linear(in_features=int(inplanes / 8), out_features=int(inplanes / 16)),
+                nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
                 self.sigmoid
             )
             self.channel_para_0.apply(weights_init_kaiming)
 
             self.channel_para_1 = nn.Sequential(
-                nn.Linear(in_features=int(inplanes / 8), out_features=int(inplanes / 16)),
+                nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
                 self.sigmoid
             )
             self.channel_para_1.apply(weights_init_kaiming)
@@ -113,17 +113,17 @@ class AATM(nn.Module):
             print('Build appearance spatial attention!')
 
             self.alphi_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 16)),
+                nn.BatchNorm2d(int(inplanes / 8)),
                 self.relu
             )
             self.alphi_appearance.apply(weights_init_kaiming)
 
             self.delta_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 16)),
+                nn.BatchNorm2d(int(inplanes / 8)),
                 self.relu
             )
             self.delta_appearance.apply(weights_init_kaiming)
@@ -151,9 +151,9 @@ class AATM(nn.Module):
         if self.is_appearance_channel_attention == 'yes':
             print('Build appearacne channel attention!')
             self.app_channel = nn.Sequential(
-                nn.Linear(in_features=inplanes, out_features=int(inplanes / 16)),
+                nn.Linear(in_features=inplanes, out_features=int(inplanes / 8)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
                 self.sigmoid
             )
             self.app_channel.apply(weights_init_kaiming)
@@ -248,7 +248,7 @@ class AATM(nn.Module):
             alphi_feat = self.alphi_appearance(reshape_map).view(b * t, -1, h * w)
             delta_feat = self.delta_appearance(reshape_map).view(b * t, -1, h * w)
             alphi_feat = alphi_feat.permute(0, 2, 1)
-            Gs = torch.matmul(delta_feat, alphi_feat)
+            Gs = torch.matmul(alphi_feat, delta_feat)
             Gs_in = Gs.permute(0, 2, 1).view(b * t, h * w, h, w)
             Gs_out = Gs.view(b * t, h * w, h, w)
             Gs_joint = torch.cat((Gs_in, Gs_out), 1)

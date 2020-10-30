@@ -123,8 +123,8 @@ def main():
             # T.resize(cfg.INPUT.SIZE_TRAIN),
             T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
             T.random_horizontal_flip(p=cfg.INPUT.PROB),
-            # T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-            # T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
+            T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
+            T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
             T.to_tensor(),
             T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)

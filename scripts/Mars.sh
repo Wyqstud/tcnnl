@@ -5,7 +5,7 @@ python main_baseline.py --arch STAM\
                         --train_sampler 'Random_interval'\
                         --test_sampler 'Begin_interval'\
                         --transform_method 'consecutive'\
-                        --sampler_method 'fix'\
+                        --sampler_method 'random'\
                         --triplet_distance 'cosine'\
                         --test_distance 'cosine'\
                         --is_cat 'yes'\
@@ -14,6 +14,6 @@ python main_baseline.py --arch STAM\
                         --is_mutual_spatial_attention 'yes'\
                         --is_appearance_channel_attention 'yes'\
                         --is_appearance_spatial_attention 'yes'\
-                        --layer_num 2 \
-                        --seq_len 4 \
+                        --layer_num 3 \
+                        --seq_len 8 \
                         --is_down_channel 'yes'
