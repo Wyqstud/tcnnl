@@ -57,6 +57,8 @@ parser.add_argument('--LabelSmooth', type=str, default='yes', choices=['yes','no
 parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes', 'no'])
 parser.add_argument('--dataset', type=str, default='mars', choices=['mars','prid','duke','ilidsvid'])
 
+parser.add_argument('--test_only', type=str, default='no', choices=['yes', 'no'])
+parser.add_argument('--test_path', type=str, default=None)
 
 args_ = parser.parse_args()
 
@@ -78,7 +80,7 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = cfg.MODEL.DEVICE_ID
 
     use_gpu = torch.cuda.is_available() and cfg.MODEL.DEVICE == "cuda"
-    if not cfg.EVALUATE_ONLY:
+    if args_.test_only == 'no':
         sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_train.txt'))
     else:
         sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_test.txt'))
@@ -122,9 +124,9 @@ def main():
         transform_train = T.Compose([
             # T.resize(cfg.INPUT.SIZE_TRAIN),
             T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-            T.random_horizontal_flip(p=cfg.INPUT.PROB),
-            T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-            T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
+            # T.random_horizontal_flip(p=cfg.INPUT.PROB),
+            # T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
+            # T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
             T.to_tensor(),
             T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
@@ -197,7 +199,7 @@ def main():
             batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
             pin_memory=pin_memory, drop_last=False,
         )
-    
+
     model = nn.DataParallel(model)
     model.cuda()
 
@@ -214,6 +216,14 @@ def main():
     optimizer = make_optimizer(cfg, model)
     scheduler = WarmupMultiStepLR(optimizer, cfg.SOLVER.STEPS, cfg.SOLVER.GAMMA, cfg.SOLVER.WARMUP_FACTOR,
                                   cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.WARMUP_METHOD)
+
+    if args_.test_only == 'yes' :
+        print("Loading checkpoint from '{}'".format(args_.test_path))
+        print("Evaluate only")
+        checkpoint = torch.load(args_.test_path)
+        model.load_state_dict(checkpoint)
+        test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu, cfg.DATASETS.NAME)
+        return
 
     start_epoch = 0
     for epoch in range(start_epoch, cfg.SOLVER.MAX_EPOCHS):

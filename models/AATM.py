@@ -25,7 +25,7 @@ class AATM(nn.Module):
         super(AATM, self).__init__()
 
         self.inplanes = inplanes
-        self.mid_planes = mid_planes
+        self.mid_planes = 256
         # self.seq_len = seq_len
         self.spatial_method = spatial_method
         self.is_mutual_channel_attention = is_mutual_channel_attention
