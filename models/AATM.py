@@ -73,7 +73,7 @@ class AATM(nn.Module):
             self.gg_temporal.apply(weights_init_kaiming)
 
             self.te_para = nn.Sequential(
-                nn.Conv2d(in_channels=2 * 128, out_channels=128,
+                nn.Conv2d(in_channels=3 * 128, out_channels=128,
                           kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
@@ -197,6 +197,8 @@ class AATM(nn.Module):
 
              if self.is_mutual_spatial_attention == 'yes':
                  embed_feat0 = embed_feat[:, idx, :, :, :]
+                 embed_feat1 = embed_feat[:, idx + 1, :, :, :]
+
                  gamma_feat0 = gamma_feat[:, idx, :, :].permute(0, 2, 1)
                  beta_feat0 = beta_feat[:, idx + 1, :, :]
                  Gs0 = torch.matmul(gamma_feat0, beta_feat0)
@@ -204,10 +206,9 @@ class AATM(nn.Module):
                  Gs_out0 = Gs0.view(b, h * w, h, w)
                  Gs_joint0 = torch.cat((Gs_in0, Gs_out0), 1)
                  Gs_joint0 = self.gg_temporal(Gs_joint0)
-                 para_alpha = torch.cat((embed_feat0, Gs_joint0), 1)
+                 para_alpha = torch.cat((embed_feat0, embed_feat1, Gs_joint0), 1)
                  para_alpha = self.te_para(para_alpha)
 
-                 embed_feat1 = embed_feat[:, idx + 1, :, :, :]
                  gamma_feat1 = gamma_feat[:, idx + 1, :, :].permute(0, 2, 1)
                  beta_feat1 = beta_feat[:, idx, :, :]
                  Gs1 = torch.matmul(gamma_feat1, beta_feat1)
@@ -215,7 +216,7 @@ class AATM(nn.Module):
                  Gs_out1 = Gs1.view(b, h * w, h, w)
                  Gs_joint1 = torch.cat((Gs_in1, Gs_out1), 1)
                  Gs_joint1 = self.gg_temporal(Gs_joint1)
-                 para_beta = torch.cat((embed_feat1, Gs_joint1), 1)
+                 para_beta = torch.cat((embed_feat1, embed_feat1, Gs_joint1), 1)
                  para_beta = self.te_para(para_beta)
 
              if self.is_mutual_spatial_attention == 'yes' and self.is_mutual_channel_attention == 'yes':

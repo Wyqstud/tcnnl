@@ -1,7 +1,7 @@
 #!/bin/scripts
 
 python main_baseline.py --arch STAM\
-                        -dataset 'mars'\
+                        --dataset 'mars'\
                         --model_spatial_pool 'avg'\
                         --model_temporal_pool 'avg'\
                         --train_sampler 'Random_interval'\
@@ -19,9 +19,9 @@ python main_baseline.py --arch STAM\
                         --layer_num 3 \
                         --seq_len 8 \
                         --is_down_channel 'yes'\
-                        --sampler 'RandomIdentitySamplerStrongBasaline'
+                        --sampler 'RandomIdentitySampler'
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%test%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%test%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #python main_baseline.py --arch STAM\
 #                        --model_spatial_pool 'avg'\
