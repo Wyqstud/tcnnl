@@ -241,8 +241,9 @@ def main():
             print("==> Test")
             metrics = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,cfg.DATASETS.NAME)
             rank1 = metrics[0]
-            state_dict = model.state_dict()
-            torch.save(state_dict, osp.join(cfg.OUTPUT_DIR, "rank1_" + str(rank1) + '_checkpoint_ep' + str(epoch + 1) + '.pth'))
+            if epoch>220:
+                state_dict = model.state_dict()
+                torch.save(state_dict, osp.join(cfg.OUTPUT_DIR, "rank1_" + str(rank1) + '_checkpoint_ep' + str(epoch + 1) + '.pth'))
 
 
     elapsed = round(time.time() - start_time)
