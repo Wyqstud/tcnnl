@@ -1,6 +1,6 @@
 #!/bin/scripts
 
-python main_baseline.py --arch STAM\
+python main_baseline.py --arch 'ResNet50'\
                         --dataset 'mars'\
                         --model_spatial_pool 'avg'\
                         --model_temporal_pool 'avg'\
@@ -10,7 +10,7 @@ python main_baseline.py --arch STAM\
                         --sampler_method 'random'\
                         --triplet_distance 'cosine'\
                         --test_distance 'cosine'\
-                        --is_cat 'yes'\
+                        --is_cat 'no'\
                         --feature_method 'cat'\
                         --is_mutual_channel_attention 'yes'\
                         --is_mutual_spatial_attention 'yes'\

@@ -70,7 +70,7 @@ class AATM(nn.Module):
 
             self.gg_temporal = nn.Sequential(
                 nn.Conv2d(in_channels=2 * 16 * 8, out_channels=128,
-                          kernel_size=1, stride=1, padding=0, bias=False),
+                          kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
             )
@@ -139,7 +139,7 @@ class AATM(nn.Module):
 
             self.gg_spatial = nn.Sequential(
                 nn.Conv2d(in_channels=2 * 16 * 8, out_channels=128,
-                          kernel_size=1, stride=1, padding=0, bias=False),
+                          kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
             )

@@ -60,12 +60,20 @@ class ResNet50(nn.Module):
                  temporal_method, neck_feat = None, neck="no", **kwargs):
         super(ResNet50,self).__init__()
 
-        self.feat_dim = 2048
+        self.feat_dim = 1024
         self.num_classes = num_classes
         self.neck = neck
         self.neck_feat = neck_feat
         self.spatial_method = spatial_method
         self.temporal_method = temporal_method
+        self.relu = nn.ReLU(inplace=True)
+
+        self.down_channel = nn.Sequential(
+            nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, padding=0,
+                      bias=False),
+            nn.BatchNorm2d(1024),
+            self.relu
+        )
 
         self.base = ResNet()
         
@@ -84,6 +92,7 @@ class ResNet50(nn.Module):
         # print(x.size())
         x = x.view(b*t,c,w,h)
         feat = self.base(x)
+        feat = self.down_channel(feat)
         feat  = feat.view(b*t,self.feat_dim,feat.size(2),feat.size(3))
 
         if self.spatial_method == 'max':
