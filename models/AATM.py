@@ -70,7 +70,7 @@ class AATM(nn.Module):
 
             self.gg_temporal = nn.Sequential(
                 nn.Conv2d(in_channels=2 * 16 * 8, out_channels=128,
-                          kernel_size=3, stride=1, padding=1, bias=False),
+                          kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
             )
@@ -110,14 +110,6 @@ class AATM(nn.Module):
             )
             self.channel_para.apply(weights_init_kaiming)
 
-            # self.channel_para_1 = nn.Sequential(
-            #     nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
-            #     self.relu,
-            #     nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
-            #     self.sigmoid
-            # )
-            # self.channel_para_1.apply(weights_init_kaiming)
-
         if self.is_appearance_spatial_attention :
             print('Build appearance spatial attention!')
 
@@ -139,7 +131,7 @@ class AATM(nn.Module):
 
             self.gg_spatial = nn.Sequential(
                 nn.Conv2d(in_channels=2 * 16 * 8, out_channels=128,
-                          kernel_size=3, stride=1, padding=1, bias=False),
+                          kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
             )
@@ -188,7 +180,6 @@ class AATM(nn.Module):
         embed_feat = self.Embeding(reshape_map).view(b, t, -1, h, w)
 
         if self.is_mutual_spatial_attention == 'yes' :
-            embed_feat = self.Embeding(reshape_map).view(b, t, -1, h, w)
             gamma_feat = self.gamma_temporal(reshape_map).view(b, t, -1, h * w)
             beta_feat = self.beta_temporal(reshape_map).view(b, t, -1, h * w)
 
@@ -204,7 +195,6 @@ class AATM(nn.Module):
                  para_00 = self.channel_para(para0).view(b, -1, 1, 1)
                  para1 = torch.cat((channel_para[:, :, idx + 1], channel_para[:, :, idx]), 1)
                  para_01 = self.channel_para(para1).view(b, -1, 1, 1)
-                 # para_01 = self.channel_para_1(para).view(b, -1, 1, 1)
 
              if self.is_mutual_spatial_attention == 'yes':
                  embed_feat0 = embed_feat[:, idx, :, :, :]
@@ -219,7 +209,6 @@ class AATM(nn.Module):
                  Gs_joint0 = self.gg_temporal(Gs_joint0)
                  para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
                  para_alpha = self.te_para(torch.cat((para_alpha, Gs_joint0), 1))
-                 # para_alpha = self.te_para(para_alpha)
 
                  gamma_feat1 = gamma_feat[:, idx + 1, :, :].permute(0, 2, 1)
                  beta_feat1 = beta_feat[:, idx, :, :]
@@ -230,7 +219,6 @@ class AATM(nn.Module):
                  Gs_joint1 = self.gg_temporal(Gs_joint1)
                  para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
                  para_beta = self.te_para(torch.cat((para_beta, Gs_joint1), 1))
-                 # para_beta = self.te_para(para_beta)
 
              if self.is_mutual_spatial_attention == 'yes' and self.is_mutual_channel_attention == 'yes':
                  para_00 = para_00 * para_alpha
@@ -299,7 +287,7 @@ class AATM(nn.Module):
 
         gap_feat_map = torch.stack(gap_feat_map, 1)
         gap_feat_map = gap_feat_map.view(b * seq_len, -1, h, w)
-        gap_feat_map = self.conv_block(gap_feat_map)
+        # gap_feat_map = self.conv_block(gap_feat_map)
 
         if self.spatial_method == 'max':
             gap_feat_vect = F.max_pool2d(gap_feat_map, gap_feat_map.size()[2:])
