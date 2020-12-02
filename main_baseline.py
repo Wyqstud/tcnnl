@@ -41,17 +41,18 @@ parser.add_argument('--train_sampler', type=str, default='Random_interval', help
 parser.add_argument('--test_sampler', type=str, default='Begin_interval', help='test sampler', choices=['dense', 'Begin_interval'])
 parser.add_argument('--sampler',type=str,default='RandomIdentitySampler', choices=['RandomIdentitySampler', 'RandomIdentitySamplerStrongBasaline', 'RandomIdentitySamplerV2'])
 parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'], help='transform method is tracklet level or frame level')
-parser.add_argument('--sampler_method', type=str, default='fix', choices=['random', 'fix'])
+parser.add_argument('--sampler_method', type=str, default='random', choices=['random', 'fix'])
 parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--is_cat', type=str, default='yes', choices=['yes','no'], help='gallery set = gallery set + query set')
 parser.add_argument('--feature_method', type=str, default='cat', choices=['cat', 'final'])
-parser.add_argument('--is_mutual_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_mutual_channel_attention', type=str, default='no', choices=['yes','no'])
 parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--is_appearance_channel_attention', type=str, default='yes', choices=['yes','no'])
+parser.add_argument('--is_appearance_channel_attention', type=str, default='no', choices=['yes','no'])
 parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--layer_num', type=int, default=2, choices=[1, 2, 3])
-parser.add_argument('--seq_len', type=int, default=4, choices=[4, 8])
+parser.add_argument('--fix', type=str, default='yes', choices=['yes', 'no'])
+parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
+parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
 parser.add_argument('--split_id', type=int, default=0)
 parser.add_argument('--LabelSmooth', type=str, default='yes', choices=['yes','no'])
 parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes', 'no'])
@@ -115,6 +116,7 @@ def main():
                               is_appearance_channel_attention=args_.is_appearance_channel_attention,
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
                               is_down_channel = args_.is_down_channel,
+                              fix = args_.fix,
                               )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
@@ -231,11 +233,9 @@ def main():
         print("==> Epoch {}/{}".format(epoch + 1, cfg.SOLVER.MAX_EPOCHS))
         print("current lr:", scheduler.get_lr()[0])
 
-
         train(model, trainloader, xent, tent, optimizer, use_gpu)
         scheduler.step()
         torch.cuda.empty_cache()
-
 
         if cfg.SOLVER.EVAL_PERIOD > 0 and ((epoch + 1) % cfg.SOLVER.EVAL_PERIOD == 0 or (epoch + 1) == cfg.SOLVER.MAX_EPOCHS):
             print("==> Test")
@@ -263,7 +263,7 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
         optimizer.zero_grad()
         if use_gpu:
             imgs = imgs.cuda()
-            pids = pids.cuda()
+            # pids = pids.cuda()
         outputs, features = model(imgs)
 
         if isinstance(outputs, (tuple, list)):

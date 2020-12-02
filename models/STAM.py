@@ -57,7 +57,8 @@ class STAM(nn.Module):
                  is_mutual_spatial_attention='yes',
                  is_appearance_channel_attention='yes',
                  is_appearance_spatial_attention='yes',
-                 is_down_channel = 'yes'):
+                 is_down_channel = 'yes',
+                 fix = 'yes'):
         super(STAM, self).__init__()
 
         self.in_planes = 2048
@@ -105,19 +106,22 @@ class STAM(nn.Module):
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix = fix)
             t = t / 2
             self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix = fix)
             t = t / 2
             self.layer3 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix=fix)
 
         elif self.layer_num == 2:
 
@@ -126,13 +130,15 @@ class STAM(nn.Module):
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix = fix)
             t = t / 2
             self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix = fix)
 
         elif self.layer_num == 1:
 
@@ -141,7 +147,8 @@ class STAM(nn.Module):
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               fix = fix)
 
         self.bottleneck = nn.BatchNorm1d(self.plances)
         self.classifier = nn.Linear(self.plances, self.num_classes, bias=False)

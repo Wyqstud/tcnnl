@@ -19,8 +19,9 @@ def weights_init_kaiming(m):
 class AATM(nn.Module):
 
     def __init__(self, inplanes, mid_planes, spatial_method,
-                 is_mutual_channel_attention,is_mutual_spatial_attention,
-                 is_appearance_channel_attention,is_appearance_spatial_attention, **kwargs):
+                 is_mutual_channel_attention, is_mutual_spatial_attention,
+                 is_appearance_channel_attention, is_appearance_spatial_attention,
+                 fix, **kwargs):
 
         super(AATM, self).__init__()
 
@@ -32,6 +33,7 @@ class AATM(nn.Module):
         self.is_mutual_spatial_attention = is_mutual_spatial_attention
         self.is_appearance_channel_attention = is_appearance_channel_attention
         self.is_appearance_spatial_attention = is_appearance_spatial_attention
+        self.fix = fix
 
         self.sigmoid = nn.Sigmoid()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
@@ -110,7 +112,7 @@ class AATM(nn.Module):
             )
             self.channel_para.apply(weights_init_kaiming)
 
-        if self.is_appearance_spatial_attention :
+        if self.is_appearance_spatial_attention == 'yes' :
             print('Build appearance spatial attention!')
 
             self.alphi_appearance = nn.Sequential(
@@ -205,17 +207,25 @@ class AATM(nn.Module):
                  Gs0 = torch.matmul(gamma_feat0, beta_feat0)
                  Gs_in0 = Gs0.permute(0, 2, 1).view(b, h * w, h, w)
                  Gs_out0 = Gs0.view(b, h * w, h, w)
-                 Gs_joint0 = torch.cat((Gs_in0, Gs_out0), 1)
-                 Gs_joint0 = self.gg_temporal(Gs_joint0)
-                 para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
-                 para_alpha = self.te_para(torch.cat((para_alpha, Gs_joint0), 1))
 
                  gamma_feat1 = gamma_feat[:, idx + 1, :, :].permute(0, 2, 1)
                  beta_feat1 = beta_feat[:, idx, :, :]
                  Gs1 = torch.matmul(gamma_feat1, beta_feat1)
                  Gs_in1 = Gs1.permute(0, 2, 1).view(b, h * w, h, w)
                  Gs_out1 = Gs1.view(b, h * w, h, w)
-                 Gs_joint1 = torch.cat((Gs_in1, Gs_out1), 1)
+
+                 if self.fix == 'yes':
+                     Gs_joint0 = torch.cat((Gs_in0, Gs_out1), 1)
+                 else:
+                    Gs_joint0 = torch.cat((Gs_in0, Gs_out0), 1)
+                 Gs_joint0 = self.gg_temporal(Gs_joint0)
+                 para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
+                 para_alpha = self.te_para(torch.cat((para_alpha, Gs_joint0), 1))
+
+                 if self.fix == 'yes':
+                    Gs_joint1 = torch.cat((Gs_in1, Gs_out0), 1)
+                 else:
+                    Gs_joint1 = torch.cat((Gs_in1, Gs_out1), 1)
                  Gs_joint1 = self.gg_temporal(Gs_joint1)
                  para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
                  para_beta = self.te_para(torch.cat((para_beta, Gs_joint1), 1))
@@ -287,7 +297,7 @@ class AATM(nn.Module):
 
         gap_feat_map = torch.stack(gap_feat_map, 1)
         gap_feat_map = gap_feat_map.view(b * seq_len, -1, h, w)
-        # gap_feat_map = self.conv_block(gap_feat_map)
+        gap_feat_map = self.conv_block(gap_feat_map)
 
         if self.spatial_method == 'max':
             gap_feat_vect = F.max_pool2d(gap_feat_map, gap_feat_map.size()[2:])
