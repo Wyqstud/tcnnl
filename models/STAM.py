@@ -168,8 +168,9 @@ class STAM(nn.Module):
         if self.feature_method == 'cat' :
 
             cat_feature = torch.stack(feature_list, 1)
-            feature = self.cat_conv(cat_feature)
-            feature = self.relu(feature).view(feature.size(0), -1)
+            feature = torch.mean(cat_feature, 1)
+            # feature = self.cat_conv(cat_feature)
+            # feature = self.relu(feature).view(feature.size(0), -1)
 
         elif self.feature_method == 'final':
 
