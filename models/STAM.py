@@ -169,7 +169,7 @@ class STAM(nn.Module):
 
             cat_feature = torch.stack(feature_list, 1)
             feature = self.cat_conv(cat_feature)
-            feature = self.sigmoid(feature).view(feature.size(0), -1)
+            feature = self.relu(feature).view(feature.size(0), -1)
 
         elif self.feature_method == 'final':
 
