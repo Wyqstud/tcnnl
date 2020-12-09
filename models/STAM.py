@@ -80,6 +80,7 @@ class STAM(nn.Module):
         self.is_down_channel = is_down_channel
 
         self.avg_2d = nn.AdaptiveAvgPool2d((1, 1))
+        self.avg_3d = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid = nn.Sigmoid()
         self.soft = nn.Softmax(dim=1)
@@ -96,9 +97,9 @@ class STAM(nn.Module):
         else:
             self.plances = 2048
 
-        if self.feature_method == 'cat':
-            self.cat_conv = nn.Conv1d(in_channels=self.layer_num, out_channels=1, kernel_size=1)
-            self.cat_conv.apply(weights_init_kaiming)
+        # if self.feature_method == 'cat':
+        #     self.cat_conv = nn.Conv1d(in_channels=self.layer_num, out_channels=1, kernel_size=1)
+        #     self.cat_conv.apply(weights_init_kaiming)
 
         if self.layer_num == 3:
             t = seq_len
@@ -191,9 +192,11 @@ class STAM(nn.Module):
         # feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
 
         feat_map = feat_map.view(b, t, -1, w, h)
+        feat_vect = self.avg_3d(feat_map.permute(0, 2, 1, 3, 4)).view(b, -1)
         if self.layer_num == 3 :
 
             list = []
+            list.append(feat_vect)
             feat_map_1, feature_1 = self.layer1(feat_map)
             list.append(feature_1)
             feat_map_2, feature_2 = self.layer2(feat_map_1)
