@@ -192,11 +192,11 @@ class STAM(nn.Module):
         # feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
 
         feat_map = feat_map.view(b, t, -1, w, h)
-        feat_vect = self.avg_3d(feat_map.permute(0, 2, 1, 3, 4)).view(b, -1)
+        # feat_vect = self.avg_3d(feat_map.permute(0, 2, 1, 3, 4)).view(b, -1)
         if self.layer_num == 3 :
 
             list = []
-            list.append(feat_vect)
+            # list.append(feat_vect)
             feat_map_1, feature_1 = self.layer1(feat_map)
             list.append(feature_1)
             feat_map_2, feature_2 = self.layer2(feat_map_1)
