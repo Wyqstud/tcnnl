@@ -40,14 +40,14 @@ class AATM(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
         self.Embeding = nn.Sequential(
-            nn.Conv2d(in_channels=inplanes, out_channels=128,
+            nn.Conv2d(in_channels=inplanes, out_channels=mid_planes,
+                      kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(mid_planes),
+            self.relu,
+            nn.Conv2d(in_channels=mid_planes, out_channels=128,
                       kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(128),
-            self.relu,
-            # nn.Conv2d(in_channels=mid_planes, out_channels=128,
-            #           kernel_size=1, stride=1, padding=0, bias=False),
-            # nn.BatchNorm2d(128),
-            # self.relu
+            self.relu
         )
         self.Embeding.apply(weights_init_kaiming)
 
