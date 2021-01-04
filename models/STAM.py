@@ -71,8 +71,7 @@ class STAM(nn.Module):
         self.seq_len = seq_len
         self.num_classes = num_classes
         self.plances = 1024
-        self.mid_channel = int(self.plances * 0.5)
-        self.dropout = dropout
+        self.mid_channel = 256
         self.layer_num = layer_num
         self.feature_method = feature_method
         self.spatial_method = spatial_method
@@ -85,8 +84,6 @@ class STAM(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.soft = nn.Softmax(dim=1)
 
-        if self.dropout > 0:
-            self.drop = nn.Dropout(self.dropout)
         if self.is_down_channel == 'yes' :
             print('Build down channel!')
             self.down_channel = nn.Sequential(
@@ -108,21 +105,21 @@ class STAM(nn.Module):
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
-                               fix = fix)
+                               fix = fix, num= '1')
             t = t / 2
             self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
-                               fix = fix)
+                               fix = fix, num= '2')
             t = t / 2
             self.layer3 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
-                               fix=fix)
+                               fix=fix, num= '3')
 
         elif self.layer_num == 2:
 
@@ -162,23 +159,6 @@ class STAM(nn.Module):
         self.classifier.apply(weight_init_classifier)
         # self.frame_classifer.apply(weight_init_classifier)
 
-    def aggregate_feature(self, feature_list):
-
-        num = len(feature_list)
-
-        if self.feature_method == 'cat' :
-
-            cat_feature = torch.stack(feature_list, 1)
-            feature = torch.mean(cat_feature, 1)
-            # feature = self.cat_conv(cat_feature)
-            # feature = self.relu(feature).view(feature.size(0), -1)
-
-        elif self.feature_method == 'final':
-
-            feature = feature_list[num]
-
-        return feature
-
     def forward(self, x, pids=None, camid=None):
 
         b, t, c, w, h = x.size()
@@ -196,33 +176,20 @@ class STAM(nn.Module):
         if self.layer_num == 3 :
 
             list = []
-            # list.append(feat_vect)
+
             feat_map_1, feature_1 = self.layer1(feat_map)
             list.append(feature_1)
+
             feat_map_2, feature_2 = self.layer2(feat_map_1)
             list.append(feature_2)
+
             feat_map_3, feature_3 = self.layer3(feat_map_2)
             list.append(feature_3)
 
-            feature = self.aggregate_feature(list)
+            feature_list = torch.stack(list, 1)
+            feature = torch.mean(feature_list, 1)
 
-        elif self.layer_num == 2:
-
-            list = []
-            feat_map_1, feature_1 = self.layer1(feat_map)
-            list.append(feature_1)
-            feat_map_2, feature_2 = self.layer2(feat_map_1)
-            list.append(feature_2)
-
-            feature = self.aggregate_feature(list)
-
-        else:
-
-            feat_map_1, feature_1 = self.layer1(feat_map)
-            feature = feature_1
-
-        feature_list = []
-        feature_list.append(feature)
+            # feature = self.aggregate_feature(list)
         BN_feature = self.bottleneck(feature)
         torch.cuda.empty_cache()
 
