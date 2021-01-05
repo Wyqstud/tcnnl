@@ -50,9 +50,7 @@ def weight_init_classifier(m):
 
 class STAM(nn.Module):
 
-    def __init__(self, num_classes, model_name, pretrain_choice,seq_len, dropout=0, layer_num=2, feature_method='cat',
-                 spatial_method = 'avg',
-                 temporal_method = 'avg',
+    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, layer_num=3, feature_method='cat',
                  is_mutual_channel_attention='yes',
                  is_mutual_spatial_attention='yes',
                  is_appearance_channel_attention='yes',
@@ -71,50 +69,43 @@ class STAM(nn.Module):
         self.seq_len = seq_len
         self.num_classes = num_classes
         self.plances = 1024
-        self.mid_channel = 256
+        self.mid_channel = 512
         self.layer_num = layer_num
         self.feature_method = feature_method
-        self.spatial_method = spatial_method
-        self.temporal_method = temporal_method
         self.is_down_channel = is_down_channel
 
         self.avg_2d = nn.AdaptiveAvgPool2d((1, 1))
         self.avg_3d = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid = nn.Sigmoid()
-        self.soft = nn.Softmax(dim=1)
 
         if self.is_down_channel == 'yes' :
             print('Build down channel!')
             self.down_channel = nn.Sequential(
-                nn.Conv2d(in_channels=self.in_planes, out_channels=self.plances,kernel_size=1, stride=1, padding=0, bias=False),
+                nn.Conv2d(in_channels=self.in_planes, out_channels=self.plances, kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(self.plances),
                 self.relu
             )
         else:
             self.plances = 2048
 
-        # if self.feature_method == 'cat':
-        #     self.cat_conv = nn.Conv1d(in_channels=self.layer_num, out_channels=1, kernel_size=1)
-        #     self.cat_conv.apply(weights_init_kaiming)
-
         if self.layer_num == 3:
             t = seq_len
-            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
                                fix = fix, num= '1')
             t = t / 2
-            self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
                                fix = fix, num= '2')
             t = t / 2
-            self.layer3 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer3 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
@@ -148,16 +139,17 @@ class STAM(nn.Module):
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
                                fix = fix)
 
-        self.bottleneck = nn.BatchNorm1d(self.plances)
-        self.classifier = nn.Linear(self.plances, self.num_classes, bias=False)
-        # self.frame_classifer = nn.Linear(self.plances, self.num_classes, bias=False)
+        self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(3)])
+        self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(3)])
         self.softmax_list = nn.Softmax(dim=2)
         self.softmax = nn.Softmax(dim=1)
 
-        self.bottleneck.bias.requires_grad_(False)
+        self.bottleneck[0].bias.requires_grad_(False)
+        self.bottleneck[1].bias.requires_grad_(False)
+        self.bottleneck[2].bias.requires_grad_(False)
+
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
-        # self.frame_classifer.apply(weight_init_classifier)
 
     def forward(self, x, pids=None, camid=None):
 
@@ -169,33 +161,40 @@ class STAM(nn.Module):
 
         if self.is_down_channel == 'yes':
             feat_map = self.down_channel(feat_map)
-        # feature_0 = F.avg_pool2d(feat_map, feat_map.size()[2:]).view(b, t, -1)
 
         feat_map = feat_map.view(b, t, -1, w, h)
-        # feat_vect = self.avg_3d(feat_map.permute(0, 2, 1, 3, 4)).view(b, -1)
         if self.layer_num == 3 :
 
             list = []
+            feature_list = []
 
             feat_map_1, feature_1 = self.layer1(feat_map)
             list.append(feature_1)
+            feature1 = feature_1
+            feature_list.append(feature1)
 
             feat_map_2, feature_2 = self.layer2(feat_map_1)
             list.append(feature_2)
+            feature_2 = torch.stack(list, 1)
+            feature_2 = torch.mean(feature_2, 1)
+            feature_list.append(feature_2)
 
             feat_map_3, feature_3 = self.layer3(feat_map_2)
             list.append(feature_3)
+            feature_3 = torch.stack(list, 1)
+            feature_3 = torch.mean(feature_3, 1)
+            feature_list.append(feature_3)
 
-            feature_list = torch.stack(list, 1)
-            feature = torch.mean(feature_list, 1)
-
-            # feature = self.aggregate_feature(list)
-        BN_feature = self.bottleneck(feature)
+        BN_feature_list = []
+        for i in range(len(feature_list)):
+            BN_feature_list.append(self.bottleneck[i](feature_list[i]))
+        # BN_feature = self.bottleneck(feature)
         torch.cuda.empty_cache()
 
+        cls_score = []
         if self.training:
-            cls_score = self.classifier(BN_feature)
-
-            return cls_score, BN_feature
+            for i in range(len(feature_list)):
+                cls_score.append(self.classifier[i](BN_feature_list[i]))
+            return cls_score, BN_feature_list
         else:
-            return BN_feature, pids, camid
+            return BN_feature_list[2], pids, camid

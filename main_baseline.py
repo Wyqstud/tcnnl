@@ -108,8 +108,6 @@ def main():
 
     model = models.init_model(name=args_.arch, num_classes=dataset.num_train_pids, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
                               model_name=cfg.MODEL.NAME, seq_len = args_.seq_len,
-                              spatial_method=args_.model_spatial_pool,
-                              temporal_method = args_.model_temporal_pool,
                               layer_num=args_.layer_num,
                               is_mutual_channel_attention=args_.is_mutual_channel_attention,
                               is_mutual_spatial_attention=args_.is_mutual_spatial_attention,
