@@ -211,20 +211,20 @@ class MA(object):
     def cmc_curve(self):
         pass
 
-    def Gram(self, model, testloader, test_name, print_freq=10):
+    def Gram(self, model, loader, layer_name, print_freq=10):
 
         model = model.eval()
-        model_dict = dict(type='STAM', arch = model, layer_name = 'layer1', input_size = [256, 128])
+        model_dict = dict(type='STAM', arch = model, layer_name = layer_name, input_size = [256, 128])
 
         model_gradcam = GradCAM(model_dict)
         model_gradcammp = GradCAMpp(model_dict)
         mean, var = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
         # cam_dict = [model_gradcam, model_gradcammp]
 
-        for batch_idx, data in enumerate(testloader):
+        for batch_idx, data in enumerate(loader):
             imgs, paths = data[0], data[3]
             id_name  = paths[0][0].split('/')[-2]
-            gram_dir = osp.join(self.save_dir, 'Gram_' + test_name + '_' + model_dict['layer_name'])
+            gram_dir = osp.join(self.save_dir, 'Gram' + model_dict['layer_name'])
             mkdir_if_missing(gram_dir)
             imgs = imgs.cuda()
             mask, _ = model_gradcam(imgs)
@@ -258,7 +258,7 @@ class MA(object):
                 PIL.Image.open(path)
 
         if (batch_idx + 1) % print_freq == 0:
-            print('- done batch {}/{}'.format(batch_idx + 1, len(testloader)))
+            print('- done batch {}/{}'.format(batch_idx + 1, len(loader)))
 
     def SNE(self):
         pass

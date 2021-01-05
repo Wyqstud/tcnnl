@@ -56,26 +56,22 @@ def weight_init_kaiming(m):
 
 class ResNet50(nn.Module):
 
-    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, spatial_method,
-                 temporal_method, neck_feat = None, neck="no", **kwargs):
+    def __init__(self, num_classes, model_name, pretrain_choice, seq_len, neck_feat = None, neck="no", **kwargs):
         super(ResNet50,self).__init__()
 
         self.feat_dim = 1024
         self.num_classes = num_classes
         self.neck = neck
         self.neck_feat = neck_feat
-        self.spatial_method = spatial_method
-        self.temporal_method = temporal_method
         self.relu = nn.ReLU(inplace=True)
 
+        self.base = ResNet()
         self.down_channel = nn.Sequential(
             nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, padding=0,
                       bias=False),
             nn.BatchNorm2d(1024),
             self.relu
         )
-
-        self.base = ResNet()
         
         if pretrain_choice == "imagenet":
             init_pretrained_weight(self.base, model_urls[model_name])
@@ -87,30 +83,24 @@ class ResNet50(nn.Module):
         self.bottleneck.apply(weight_init_kaiming)
         self.classifier.apply(weight_init_classifier)
 
-    def forward(self, x, pids = None, camids = None):
+    def forward(self, x, pids = None, camids = None, return_logits = False):
         b,t,c,w,h = x.size()
         # print(x.size())
         x = x.view(b*t,c,w,h)
         feat = self.base(x)
         feat = self.down_channel(feat)
         feat  = feat.view(b*t,self.feat_dim,feat.size(2),feat.size(3))
-
-        if self.spatial_method == 'max':
-            feat = F.max_pool2d(feat, feat.size()[2:])
-
-        elif self.spatial_method == 'avg':
-            feat = F.avg_pool2d(feat, feat.size()[2:])
+        feat = F.avg_pool2d(feat, feat.size()[2:])
 
         feat = feat.view(b, t, -1)
-
-        if self.temporal_method == 'max':
-            feat, _ = feat.max(1)
-        elif self.temporal_method == 'avg':
-            feat = feat.mean(1)
+        feat = feat.mean(1)
         bn_feature = self.bottleneck(feat)
+        cls_score = self.classifier(bn_feature)
+
+        if return_logits :
+            return cls_score
 
         if self.training:
-            cls_score = self.classifier(bn_feature)
             return cls_score,bn_feature
         else:
             return bn_feature, pids, camids

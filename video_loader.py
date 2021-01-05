@@ -249,7 +249,7 @@ class VideoDataset(Dataset):
 
             clip = torch.stack(clip, 0)
 
-            return clip,pid,camid,img_paths[0]
+            return clip, pid, camid, out
 
         elif self.sample == 'Random_interval':
             img_paths = list(img_paths)
@@ -279,7 +279,7 @@ class VideoDataset(Dataset):
                 clip = [self.transform(img) for img in clip]
             clip = torch.stack(clip, 0)
 
-            return clip, pid, camid
+            return clip, pid, camid, img_paths
 
         elif self.sample == 'Random_choice':
             img_paths = list(img_paths)

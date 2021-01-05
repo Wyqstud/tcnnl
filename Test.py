@@ -37,8 +37,10 @@ parser.add_argument("opts", help="Modify config options using the command-line",
 parser.add_argument('--arch', type=str, default='STAM', choices=['ResNet50', 'tem_dense', 'STAM'])
 parser.add_argument('--model_spatial_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate spatial feature map')
 parser.add_argument('--model_temporal_pool', type=str, default='avg', choices=['max','avg'], help='how to aggerate temporal feaure vector')
+parser.add_argument('--train_sampler', type=str, default='Random_interval', help='train sampler', choices=['random','Random_interval','Random_choice', 'Begin_interval'])
 parser.add_argument('--test_sampler', type=str, default='Begin_interval', help='test sampler', choices=['dense', 'Begin_interval'])
 parser.add_argument('--sampler',type=str,default='RandomIdentitySampler', choices=['RandomIdentitySampler', 'RandomIdentitySamplerStrongBasaline', 'RandomIdentitySamplerV2'])
+parser.add_argument('--transform_method', type=str, default='consecutive',choices=['consecutive', 'interval'], help='transform method is tracklet level or frame level')
 parser.add_argument('--sampler_method', type=str, default='random', choices=['random', 'fix'])
 parser.add_argument('--triplet_distance', type=str, default='cosine', choices=['cosine','euclidean'])
 parser.add_argument('--test_distance', type=str, default='cosine', choices=['cosine','euclidean'])
@@ -57,11 +59,11 @@ parser.add_argument('--dataset', type=str, default='mars', choices=['mars','prid
 
 parser.add_argument('--test_path', type=str, default=None)
 parser.add_argument('--print_heat', type=str, default='no', choices=['yes', 'no'])
-parser.add_argument('--print_performance', type=str, default='no', choices=['yes', 'no'])
+parser.add_argument('--print_performance', type=bool, default=False)
 parser.add_argument('--print_rank', type=str, default='no', choices=['yes', 'no'])
-parser.add_argument('--print_gram', type=str, default='no', choices=['yes', 'no'])
-parser.add_argument('--anaysis_query', type=str, default='no', choices=['yes', 'no'])
-parser.add_argument('--anaysis_gallery', type=str, default='no', choices=['yes', 'no'])
+parser.add_argument('--print_gram', type=bool, default=False)
+parser.add_argument('--layer_name', type=str, default='layer3', choices=['layer1','layer2', 'layer3', 'down_channel'])
+parser.add_argument('--TSNE', type=bool, default=False)
 parser.add_argument('--device_id', type=str, default='0,1')
 
 args_ = parser.parse_args()
@@ -107,8 +109,6 @@ def main():
 
     model = models.init_model(name=args_.arch, num_classes=dataset.num_train_pids, pretrain_choice=cfg.MODEL.PRETRAIN_CHOICE,
                               model_name=cfg.MODEL.NAME, seq_len = args_.seq_len,
-                              spatial_method=args_.model_spatial_pool,
-                              temporal_method = args_.model_temporal_pool,
                               layer_num=args_.layer_num,
                               is_mutual_channel_attention=args_.is_mutual_channel_attention,
                               is_mutual_spatial_attention=args_.is_mutual_spatial_attention,
@@ -116,17 +116,9 @@ def main():
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
                               is_down_channel = args_.is_down_channel,
                               fix = args_.fix,
-                              is_heat_map = args_.print_heat,
                               )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
-
-    transform_train = T.Compose([
-        T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-        T.to_tensor(),
-        T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
-    ])
 
     transform_test = T.Compose([
         T.Resize(cfg.INPUT.SIZE_TEST),
@@ -144,13 +136,18 @@ def main():
         video_sampler = RandomIdentitySampler(dataset.train, num_instances=cfg.DATALOADER.NUM_INSTANCE)
 
     trainloader = DataLoader(
-        VideoDataset(dataset.train, seq_len=args_.seq_len, sample=args_.train_sampler, transform=transform_train,
+        VideoDataset(dataset.train, seq_len=args_.seq_len, sample=args_.train_sampler, transform=transform_test,
                      dataset_name=cfg.DATASETS.NAME, transform_method=args_.transform_method,
                      sampler_method=args_.sampler_method),
-        sampler=video_sampler,
-        batch_size=cfg.SOLVER.SEQS_PER_BATCH, num_workers=cfg.DATALOADER.NUM_WORKERS,
+        sampler=video_sampler, shuffle=False,
+        batch_size=1, num_workers=cfg.DATALOADER.NUM_WORKERS,
         pin_memory=pin_memory, drop_last=True
     )
+
+    if args_.print_gram:
+        batchsize = 1
+    else:
+        batchsize = cfg.TEST.SEQS_PER_BATCH
 
     if args_.test_sampler == 'dense':
         print('Build dense sampler')
@@ -172,7 +169,7 @@ def main():
             VideoDataset(dataset.query, seq_len=args_.seq_len, sample=args_.test_sampler,
                          transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
-            batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            batch_size=batchsize, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
             pin_memory=pin_memory, drop_last=False
         )
 
@@ -180,7 +177,7 @@ def main():
             VideoDataset(dataset.gallery, seq_len=args_.seq_len, sample=args_.test_sampler,
                          transform=transform_test,
                          max_seq_len=cfg.DATASETS.TEST_MAX_SEQ_NUM, dataset_name=cfg.DATASETS.NAME),
-            batch_size=cfg.TEST.SEQS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
+            batch_size=batchsize, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS,
             pin_memory=pin_memory, drop_last=False,
         )
 
@@ -195,10 +192,9 @@ def main():
     print("load model... ")
     checkpoint = torch.load(args_.test_path)
     model.load_state_dict(checkpoint)
-    model.eval()
 
     print("Evaluate...")
-    if args_.print_performance == 'yes':
+    if args_.print_performance :
         q_g_dist = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu, cfg.DATASETS.NAME)
 
     if args_.print_heat == 'yes':
@@ -212,14 +208,12 @@ def main():
         print("Build rank images!")
         model_analysis.visualize_ranked_results(q_g_dist, dataset, data_type="video")
 
-    if args_.print_gram == 'yes':
+    if args_.print_gram :
         print("Build gram picture!")
-        if args_.anaysis_query == 'yes':
-            model_analysis.Gram(model=model.module, testloader=queryloader, test_name='query')
-        if args_.anaysis_gallery == 'yes':
-            model_analysis.Gram(model=model.module, testloader=galleryloader, test_name='gallery')
+        model_analysis.Gram(model=model.module, loader = trainloader, layer_name = args_.layer_name)
 
-    return
+    if args_.TSNE :
+        pass
 
     elapsed = round(time.time() - start_time)
     elapsed = str(datetime.timedelta(seconds=elapsed))
@@ -264,7 +258,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1, 5,
         qf = torch.cat(qf, 0)
         q_pids = np.asarray(q_pids)
         q_camids = np.asarray(q_camids)
-        np.save("query_pathes", query_pathes)
 
         print("Extracted features for query set, obtained {}-by-{} matrix".format(qf.size(0), qf.size(1)))
 
@@ -307,10 +300,13 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1, 5,
             g_pids = np.append(q_pids, g_pids)
             g_camids = np.append(q_camids, g_camids)
 
-        np.save("gallery_pathes", gallery_pathes)
 
         print("Extracted features for gallery set, obtained {}-by-{} matrix".format(gf.size(0), gf.size(1)))
         print("Computing distance matrix")
 
         cmc, q_g_dist = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
         return cmc, q_g_dist
+
+if __name__ == '__main__':
+
+    main()

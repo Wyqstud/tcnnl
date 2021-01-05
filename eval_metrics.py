@@ -105,7 +105,7 @@ def evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cal_me
     # for r in ranks:
     #     print("rerank Rank-{:<3}: {:.1%}".format(r, rerank_cmc[r - 1]))
     # print("------------------")
-    return be_cmc
+    return be_cmc, q_g_dist
 
 if __name__ == "__main__":
     a = np.random.rand(3, 2)

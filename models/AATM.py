@@ -80,7 +80,7 @@ class AATM(nn.Module):
         gap_feat_map = gap_feat_map.view(b, -1, c, h, w)
         torch.cuda.empty_cache()
 
-        return gap_feat_map, feature
+        return gap_feat_map
 
 
 

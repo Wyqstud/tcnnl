@@ -151,7 +151,7 @@ class STAM(nn.Module):
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
 
-    def forward(self, x, pids=None, camid=None):
+    def forward(self, x, pids=None, camid=None, return_logits = False):
 
         b, t, c, w, h = x.size()
         x = x.view(b * t, c, w, h)
@@ -168,18 +168,24 @@ class STAM(nn.Module):
             list = []
             feature_list = []
 
-            feat_map_1, feature_1 = self.layer1(feat_map)
+            feat_map_1 = self.layer1(feat_map)
+            feature_1 = torch.mean(feat_map_1, 1)
+            feature_1 = self.avg_2d(feature_1).view(b, -1)
             list.append(feature_1)
             feature1 = feature_1
             feature_list.append(feature1)
 
-            feat_map_2, feature_2 = self.layer2(feat_map_1)
+            feat_map_2 = self.layer2(feat_map_1)
+            feature_2 = torch.mean(feat_map_2, 1)
+            feature_2 = self.avg_2d(feature_2).view(b, -1)
             list.append(feature_2)
             feature_2 = torch.stack(list, 1)
             feature_2 = torch.mean(feature_2, 1)
             feature_list.append(feature_2)
 
-            feat_map_3, feature_3 = self.layer3(feat_map_2)
+            feat_map_3 = self.layer3(feat_map_2)
+            feature_3 = torch.mean(feat_map_3, 1)
+            feature_3 = self.avg_2d(feature_3).view(b, -1)
             list.append(feature_3)
             feature_3 = torch.stack(list, 1)
             feature_3 = torch.mean(feature_3, 1)
@@ -191,9 +197,13 @@ class STAM(nn.Module):
         torch.cuda.empty_cache()
 
         cls_score = []
+        for i in range(len(feature_list)):
+            cls_score.append(self.classifier[i](BN_feature_list[i]))
+
+        if return_logits:
+            return cls_score[2]
+
         if self.training:
-            for i in range(len(feature_list)):
-                cls_score.append(self.classifier[i](BN_feature_list[i]))
             return cls_score, BN_feature_list
         else:
             return BN_feature_list[2], pids, camid
