@@ -1,6 +1,6 @@
 #!/bin/scripts
 
-#python main_baseline.py --arch 'STAM'\
+#python Train.py --arch 'STAM'\
 #                        --model_spatial_pool 'avg'\
 #                        --model_temporal_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -32,13 +32,13 @@ python main_baseline.py --layer_num '3'\
                         --is_appearance_spatial_attention 'no'\
                         --is_appearance_channel_attention 'no'\
 
-#python main_baseline.py --layer_num '2'\
+#python Train.py --layer_num '2'\
 #                        --is_mutual_spatial_attention 'no'\
 #                        --is_mutual_channel_attention 'no'\
 #                        --is_appearance_spatial_attention 'no'\
 #                        --is_appearance_channel_attention 'yes'\
 #
-#python main_baseline.py --layer_num '1'\
+#python Train.py --layer_num '1'\
 #                        --is_mutual_spatial_attention 'no'\
 #                        --is_mutual_channel_attention 'no'\
 #                        --is_appearance_spatial_attention 'no'\

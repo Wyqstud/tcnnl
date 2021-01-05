@@ -188,7 +188,6 @@ class STAM(nn.Module):
         BN_feature_list = []
         for i in range(len(feature_list)):
             BN_feature_list.append(self.bottleneck[i](feature_list[i]))
-        # BN_feature = self.bottleneck(feature)
         torch.cuda.empty_cache()
 
         cls_score = []

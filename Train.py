@@ -58,8 +58,6 @@ parser.add_argument('--LabelSmooth', type=str, default='yes', choices=['yes','no
 parser.add_argument('--is_down_channel', type=str, default='yes', choices=['yes', 'no'])
 parser.add_argument('--dataset', type=str, default='mars', choices=['mars','prid','duke','ilidsvid'])
 
-parser.add_argument('--test_only', type=str, default='no', choices=['yes', 'no'])
-parser.add_argument('--test_path', type=str, default=None)
 
 args_ = parser.parse_args()
 
@@ -122,11 +120,7 @@ def main():
     if args_.transform_method == 'consecutive':
 
         transform_train = T.Compose([
-            # T.resize(cfg.INPUT.SIZE_TRAIN),
             T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-            # T.random_horizontal_flip(p=cfg.INPUT.PROB),
-            # T.pad(cfg.INPUT.PADDING),                       # Not sure what it work, can try to omit it.
-            # T.random_crop(cfg.INPUT.SIZE_TRAIN),            # noted that in other code, there is litter data augmentation operation.why? If we omit these what will happend.
             T.to_tensor(),
             T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
@@ -217,14 +211,6 @@ def main():
     scheduler = WarmupMultiStepLR(optimizer, cfg.SOLVER.STEPS, cfg.SOLVER.GAMMA, cfg.SOLVER.WARMUP_FACTOR,
                                   cfg.SOLVER.WARMUP_ITERS, cfg.SOLVER.WARMUP_METHOD)
 
-    if args_.test_only == 'yes' :
-        print("Loading checkpoint from '{}'".format(args_.test_path))
-        print("Evaluate only")
-        checkpoint = torch.load(args_.test_path)
-        model.load_state_dict(checkpoint)
-        test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu, cfg.DATASETS.NAME)
-        return
-
     start_epoch = 0
     for epoch in range(start_epoch, cfg.SOLVER.MAX_EPOCHS):
 
@@ -261,7 +247,7 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
         optimizer.zero_grad()
         if use_gpu:
             imgs = imgs.cuda()
-            # pids = pids.cuda()
+            pids = pids.cuda()
         outputs, features = model(imgs)
 
         if isinstance(outputs, (tuple, list)):
@@ -278,9 +264,6 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
         tent_losses.update(tent_loss.item(), 1)
 
         loss = xent_loss + tent_loss
-
-#         with amp.scale_loss(loss, optimizer) as scaled_loss:
-#             scaled_loss.backward()
         loss.backward()
         optimizer.step()
         losses.update(loss.item(), 1)
@@ -323,7 +306,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,1
 
             if method == 'dense':
                 features = torch.mean(features, 0,keepdim=True)
-
             qf.append(features)
 
         qf = torch.cat(qf,0)
@@ -381,17 +363,6 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,1
 
         metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
         return metrics
-
-        # if cfg.DATASETS.NAME == "duke":
-        #     print("gallary with query result:")
-        #     gf = torch.cat([gf, qf], 0)
-        #     g_pids = np.concatenate([g_pids, q_pids], 0)
-        #     g_camids = np.concatenate([g_camids, q_camids], 0)
-        #     metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, cfg.TEST.CAlCULATION_METHOD)
-        # else:
-        #     metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
-        # return metrics
-
 
 if __name__ == '__main__':
 

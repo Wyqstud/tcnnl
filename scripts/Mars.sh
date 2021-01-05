@@ -1,6 +1,6 @@
 #!/bin/scripts
 
-#python main_baseline.py --arch 'STAM'\
+#python Train.py --arch 'STAM'\
 #                        --dataset 'mars'\
 #                        --model_spatial_pool 'avg'\
 #                        --model_temporal_pool 'avg'\
@@ -22,7 +22,7 @@
 #                        --sampler 'RandomIdentitySampler'\
 #                        --fix 'yes'
 
-python main_baseline.py --arch 'STAM'\
+python Train.py --arch 'STAM'\
                         --dataset 'mars'\
                         --model_spatial_pool 'avg'\
                         --model_temporal_pool 'avg'\
@@ -46,7 +46,7 @@ python main_baseline.py --arch 'STAM'\
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%test%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#python main_baseline.py --arch 'STAM'\
+#python Train.py --arch 'STAM'\
 #                        --dataset 'mars'\
 #                        --model_spatial_pool 'avg'\
 #                        --model_temporal_pool 'avg'\

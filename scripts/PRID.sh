@@ -1,6 +1,6 @@
 #!/bin/scripts
 
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -21,7 +21,7 @@
 #                        --split_id 0\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -43,7 +43,7 @@
 #                        --is_down_channel 'no'
 #
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -64,7 +64,7 @@
 #                        --split_id 2\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -85,7 +85,7 @@
 #                        --split_id 3\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -106,7 +106,7 @@
 #                        --split_id 4\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -127,7 +127,7 @@
 #                        --split_id 5\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -148,7 +148,7 @@
 #                        --split_id 6\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -169,7 +169,7 @@
 #                        --split_id 7\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -190,7 +190,7 @@
 #                        --split_id 8\
 #                        --is_down_channel 'no'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -232,7 +232,7 @@ python main_baseline.py --arch STAM\
                         --split_id 0\
                         --is_down_channel 'yes'
 
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -253,7 +253,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 1\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -274,7 +274,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 2\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -295,7 +295,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 3\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -316,7 +316,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 4\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -337,7 +337,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 5\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -358,7 +358,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 6\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -379,7 +379,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 7\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
@@ -400,7 +400,7 @@ python main_baseline.py --arch STAM\
 #                        --split_id 8\
 #                        --is_down_channel 'yes'
 #
-#python main_baseline.py --arch STAM\
+#python Train.py --arch STAM\
 #                        --dataset 'prid'\
 #                        --model_spatial_pool 'avg'\
 #                        --train_sampler 'Random_interval'\
