@@ -50,7 +50,6 @@ parser.add_argument('--is_mutual_channel_attention', type=str, default='no', cho
 parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
 parser.add_argument('--is_appearance_channel_attention', type=str, default='no', choices=['yes','no'])
 parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--fix', type=str, default='yes', choices=['yes', 'no'])
 parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
 parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
 parser.add_argument('--split_id', type=int, default=0)
@@ -79,10 +78,7 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = cfg.MODEL.DEVICE_ID
 
     use_gpu = torch.cuda.is_available() and cfg.MODEL.DEVICE == "cuda"
-    if args_.test_only == 'no':
-        sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_train.txt'))
-    else:
-        sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_test.txt'))
+    sys.stdout = Logger(osp.join(cfg.OUTPUT_DIR, 'log_train.txt'))
 
     print("=========================\nConfigs:{}\n=========================".format(cfg))
     s = str(args_).split(", ")
@@ -112,32 +108,16 @@ def main():
                               is_appearance_channel_attention=args_.is_appearance_channel_attention,
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
                               is_down_channel = args_.is_down_channel,
-                              fix = args_.fix,
                               )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
-    if args_.transform_method == 'consecutive':
-
-        transform_train = T.Compose([
-            T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-            T.to_tensor(),
-            T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
-        ])
-
-    elif args_.transform_method == 'interval':
-
-        transform_train = T.Compose([
-            T.Resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
-            T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
-            T.Pad(cfg.INPUT.PADDING),
-            T.RandomCrop(cfg.INPUT.SIZE_TRAIN),
-            T.ToTensor(),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            T.RandomErasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
-        ])
-
+    transform_train = T.Compose([
+        T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
+        T.to_tensor(),
+        T.normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        T.random_erasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
+    ])
 
     transform_test = T.Compose([
         T.Resize(cfg.INPUT.SIZE_TEST),
@@ -221,9 +201,9 @@ def main():
         scheduler.step()
         torch.cuda.empty_cache()
 
-        if cfg.SOLVER.EVAL_PERIOD > 0 and ((epoch + 1) % cfg.SOLVER.EVAL_PERIOD == 0 or (epoch + 1) == cfg.SOLVER.MAX_EPOCHS):
+        if cfg.SOLVER.EVAL_PERIOD > 0 and ((epoch + 1) % cfg.SOLVER.EVAL_PERIOD == 0 or (epoch + 1) == cfg.SOLVER.MAX_EPOCHS) or epoch == 0:
             print("==> Test")
-            metrics = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,cfg.DATASETS.NAME)
+            _, metrics = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,cfg.DATASETS.NAME)
             rank1 = metrics[0]
             if epoch>220:
                 state_dict = model.state_dict()
@@ -242,7 +222,7 @@ def train(model, trainloader, xent, tent, optimizer, use_gpu):
     tent_losses = AverageMeter()
     losses = AverageMeter()
 
-    for batch_idx, (imgs, pids, _) in enumerate(trainloader):
+    for batch_idx, (imgs, pids, _, _) in enumerate(trainloader):
 
         optimizer.zero_grad()
         if use_gpu:
@@ -361,8 +341,8 @@ def test(model, queryloader, galleryloader, pool, use_gpu, dataset, ranks=[1,5,1
         print("Extracted features for gallery set, obtained {}-by-{} matrix".format(gf.size(0), gf.size(1)))
         print("Computing distance matrix")
 
-        metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
-        return metrics
+        be_cmc, metrics = evaluate_reranking(qf, q_pids, q_camids, gf, g_pids, g_camids, ranks, args_.test_distance)
+        return metrics, be_cmc
 
 if __name__ == '__main__':
 

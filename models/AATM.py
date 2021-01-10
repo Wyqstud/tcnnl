@@ -23,7 +23,7 @@ class AATM(nn.Module):
     def __init__(self, inplanes, mid_planes,
                  is_mutual_channel_attention, is_mutual_spatial_attention,
                  is_appearance_channel_attention, is_appearance_spatial_attention,
-                 fix, num, **kwargs):
+                 num, **kwargs):
 
         super(AATM, self).__init__()
 
@@ -45,7 +45,7 @@ class AATM(nn.Module):
         self.Embeding.apply(weights_init_kaiming)
 
         self.TRAG = TRAG(inplanes=inplanes, is_mutual_channel_attention=is_mutual_channel_attention,
-                        is_mutual_spatial_attention = is_mutual_spatial_attention, num=num, fix=fix)
+                        is_mutual_spatial_attention = is_mutual_spatial_attention, num=num)
 
         self.SRAG = SRAG(inplanes=inplanes, is_appearance_spatial_attention=is_appearance_spatial_attention,
                          is_appearance_channel_attention=is_appearance_channel_attention, num=num)

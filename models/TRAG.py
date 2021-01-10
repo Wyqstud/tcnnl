@@ -18,7 +18,7 @@ def weights_init_kaiming(m):
 
 class TRAG(nn.Module):
 
-    def __init__(self, inplanes, is_mutual_channel_attention, is_mutual_spatial_attention, num, fix):
+    def __init__(self, inplanes, is_mutual_channel_attention, is_mutual_spatial_attention, num):
 
         super(TRAG, self).__init__()
 
@@ -26,7 +26,7 @@ class TRAG(nn.Module):
         self.is_mutual_channel_attention = is_mutual_channel_attention
         self.is_mutual_spatial_attention = is_mutual_spatial_attention
         self.num = num
-        self.fix = fix
+
 
         self.relu = nn.ReLU(True)
         # self.sigmoid = nn.Sigmoid(True)
@@ -132,18 +132,13 @@ class TRAG(nn.Module):
                 Gs_in1 = Gs1.permute(0, 2, 1).view(b, h * w, h, w)
                 Gs_out1 = Gs1.view(b, h * w, h, w)
 
-                if self.fix == 'yes':
-                    Gs_joint0 = torch.cat((Gs_in0, Gs_out1), 1)
-                else:
-                    Gs_joint0 = torch.cat((Gs_in0, Gs_out0), 1)
+                Gs_joint0 = torch.cat((Gs_in0, Gs_out1), 1)
                 Gs_joint0 = self.gg_temporal(Gs_joint0)
                 para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
                 para_alpha = self.te_para(torch.cat((para_alpha, Gs_joint0), 1))
 
-                if self.fix == 'yes':
-                    Gs_joint1 = torch.cat((Gs_in1, Gs_out0), 1)
-                else:
-                    Gs_joint1 = torch.cat((Gs_in1, Gs_out1), 1)
+
+                Gs_joint1 = torch.cat((Gs_in1, Gs_out0), 1)
                 Gs_joint1 = self.gg_temporal(Gs_joint1)
                 para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
                 para_beta = self.te_para(torch.cat((para_beta, Gs_joint1), 1))
