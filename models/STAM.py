@@ -138,12 +138,12 @@ class STAM(nn.Module):
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
                                num= '1')
 
-        self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(3)])
-        self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(3)])
+        self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(2)])
+        self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(2)])
 
         self.bottleneck[0].bias.requires_grad_(False)
         self.bottleneck[1].bias.requires_grad_(False)
-        self.bottleneck[2].bias.requires_grad_(False)
+        # self.bottleneck[2].bias.requires_grad_(False)
 
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
@@ -161,20 +161,22 @@ class STAM(nn.Module):
 
         feat_map = feat_map.view(b, t, -1, w, h)
         feature_list = []
+        list = []
 
         feat_map_1 = self.layer1(feat_map)
         feature_1 = torch.mean(feat_map_1, 1)
-        feature_1 = self.avg_2d(feature_1).view(b, -1)
-        feature_list.append(feature_1)
+        feature1 = self.avg_2d(feature_1).view(b, -1)
+        feature_list.append(feature1)
+        list.append(feature1)
 
         feat_map_2 = self.layer2(feat_map_1)
         feature_2 = torch.mean(feat_map_2, 1)
         feature_2 = self.avg_2d(feature_2).view(b, -1)
-        feature_list.append(feature_2)
+        list.append(feature_2)
 
-        sum_feature = torch.stack(feature_list, 1)
-        sum_feature = torch.mean(sum_feature, 1)
-        feature_list.append(sum_feature)
+        feature2 = torch.stack(list, 1)
+        feature2 = torch.mean(feature2, 1)
+        feature_list.append(feature2)
 
         BN_feature_list = []
         for i in range(len(feature_list)):
@@ -186,9 +188,9 @@ class STAM(nn.Module):
             cls_score.append(self.classifier[i](BN_feature_list[i]))
 
         if return_logits:
-            return cls_score[2]
+            return cls_score[1]
 
         if self.training:
             return cls_score, BN_feature_list
         else:
-            return BN_feature_list[2], pids, camid
+            return BN_feature_list[1], pids, camid
