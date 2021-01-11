@@ -73,10 +73,6 @@ class AATM(nn.Module):
         gap_feat_map0 = self.TRAG(feat_map, reshape_map, feat_vect, embed_feat)
         gap_feat_map = self.SRAG(feat_map, reshape_map, embed_feat, feat_vect, gap_feat_map0)
         gap_feat_map = self.conv_block(gap_feat_map)
-
-        gap_feat_vect = F.avg_pool2d(gap_feat_map, gap_feat_map.size()[2:])
-        gap_fea_vect = gap_feat_vect.view(b, -1, c)
-        feature = torch.mean(gap_fea_vect, 1)
         gap_feat_map = gap_feat_map.view(b, -1, c, h, w)
         torch.cuda.empty_cache()
 

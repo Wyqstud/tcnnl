@@ -114,26 +114,29 @@ class STAM(nn.Module):
         elif self.layer_num == 2:
 
             t = seq_len
-            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention,)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               num= '1')
             t = t / 2
-            self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer2 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention,)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               num= '2')
 
         elif self.layer_num == 1:
 
             t = seq_len
-            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2, spatial_method=self.spatial_method,
+            self.layer1 = AATM(inplanes=self.plances, mid_planes=self.mid_channel, seq_len=t / 2,
                                is_mutual_channel_attention=is_mutual_channel_attention,
                                is_mutual_spatial_attention=is_mutual_spatial_attention,
                                is_appearance_channel_attention=is_appearance_channel_attention,
-                               is_appearance_spatial_attention=is_appearance_spatial_attention,)
+                               is_appearance_spatial_attention=is_appearance_spatial_attention,
+                               num= '1')
 
         self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(3)])
         self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(3)])
@@ -169,18 +172,13 @@ class STAM(nn.Module):
         feature_2 = self.avg_2d(feature_2).view(b, -1)
         feature_list.append(feature_2)
 
-        feat_map_3 = self.layer3(feat_map_2)
-        feature_3 = torch.mean(feat_map_3, 1)
-        feature_3 = self.avg_2d(feature_3).view(b, -1)
-        feature_list.append(feature_3)
-
         sum_feature = torch.stack(feature_list, 1)
         sum_feature = torch.mean(sum_feature, 1)
         feature_list.append(sum_feature)
 
         BN_feature_list = []
-        for i in range(1, len(feature_list)):
-            BN_feature_list.append(self.bottleneck[i - 1](feature_list[i]))
+        for i in range(len(feature_list)):
+            BN_feature_list.append(self.bottleneck[i](feature_list[i]))
         torch.cuda.empty_cache()
 
         cls_score = []
@@ -188,7 +186,7 @@ class STAM(nn.Module):
             cls_score.append(self.classifier[i](BN_feature_list[i]))
 
         if return_logits:
-            return cls_score[3]
+            return cls_score[2]
 
         if self.training:
             return cls_score, BN_feature_list
