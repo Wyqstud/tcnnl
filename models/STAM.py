@@ -138,12 +138,12 @@ class STAM(nn.Module):
                                is_appearance_spatial_attention=is_appearance_spatial_attention,
                                num= '1')
 
-        self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(2)])
-        self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(2)])
+        self.bottleneck = nn.ModuleList([nn.BatchNorm1d(self.plances) for _  in range(3)])
+        self.classifier = nn.ModuleList([nn.Linear(self.plances, num_classes) for _ in range(3)])
 
         self.bottleneck[0].bias.requires_grad_(False)
         self.bottleneck[1].bias.requires_grad_(False)
-        # self.bottleneck[2].bias.requires_grad_(False)
+        self.bottleneck[2].bias.requires_grad_(False)
 
         self.bottleneck.apply(weights_init_kaiming)
         self.classifier.apply(weight_init_classifier)
@@ -177,6 +177,15 @@ class STAM(nn.Module):
         feature2 = torch.stack(list, 1)
         feature2 = torch.mean(feature2, 1)
         feature_list.append(feature2)
+
+        feat_map_3 = self.layer3(feat_map_2)
+        feature_3 = torch.mean(feat_map_3, 1)
+        feature_3 = self.avg_2d(feature_3).view(b, -1)
+        list.append(feature_3)
+
+        feature3 = torch.stack(list, 1)
+        feature3 = torch.mean(feature3, 1)
+        feature_list.append(feature3)
 
         BN_feature_list = []
         for i in range(len(feature_list)):
