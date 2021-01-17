@@ -141,11 +141,6 @@ class VideoDataset(Dataset):
                     break
                 indices.append(index)
 
-#             while True:
-#                 if len(indices) >= 2 * self.seq_len:
-#                     break
-#                 indices.append(end_index - 1)
-
             re_indices = []
             for i in range(0, len(indices), 2):
                 add_arg = random.randint(0,1)
@@ -156,7 +151,6 @@ class VideoDataset(Dataset):
             for index in re_indices:
                 index=int(index)
                 img_path = img_paths[index]
-                # img = read_image(img_path)
                 cache_img_path.append(img_path)
 
             imgs = self.loader(cache_img_path)
@@ -165,11 +159,6 @@ class VideoDataset(Dataset):
             elif self.transform_method == 'interval':
                 imgs = [self.transform(img) for img in imgs]
             imgs = torch.stack(imgs,0)
-            # imgs = vutil.make_grid(imgs, nrow=imgs.shape[0], normalize=True, scale_each=True)
-            # vutil.save_image(imgs, 'now_trans_test.png')
-            # print('save finish')
-            # exit()
-            # imgs = torch.stack(imgs, dim=0)
 
             return imgs, pid, camid
 
@@ -265,6 +254,10 @@ class VideoDataset(Dataset):
 
             elif len(img_paths) >= self.seq_len * int(stride/4):
                 new_stride = int(stride/4)
+                out = produce_out(img_paths, self.seq_len, new_stride, self.sampler_method)
+
+            elif len(img_paths) >= self.seq_len * int(stride/8):
+                new_stride = int(stride/8)
                 out = produce_out(img_paths, self.seq_len, new_stride, self.sampler_method)
 
             else:

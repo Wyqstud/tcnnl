@@ -1,9 +1,9 @@
-python Test.py  --arch 'ResNet50'\
-                --dataset 'mars'\
+python Test.py  --arch 'STAM'\
+                --dataset 'duke'\
                 --model_spatial_pool 'avg'\
                 --model_temporal_pool 'avg'\
                 --train_sampler 'Begin_interval'\
-                --test_sampler 'Begin_interval'\
+                --test_sampler 'dense'\
                 --transform_method 'consecutive'\
                 --sampler_method 'random'\
                 --triplet_distance 'cosine'\
@@ -17,6 +17,6 @@ python Test.py  --arch 'ResNet50'\
                 --layer_num 3 \
                 --seq_len 8 \
                 --is_down_channel 'yes'\
-                --print_gram True\
+                --print_performance True\
                 --layer_name 'down_channel'\
-                --test_path '/home/wyq/exp/ablation experiment/2020-11-26_10-54-01/rank1_0.8929348_checkpoint_ep420.pth'
+                --test_path '/home/wyq/exp/ablation experiment/2021-01-15_11-55-31/rank1_0.95726496_checkpoint_ep350.pth'

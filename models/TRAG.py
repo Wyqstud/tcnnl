@@ -165,5 +165,6 @@ class TRAG(nn.Module):
             gap_feat_map0.append(gap_map0)
 
         gap_feat_map0 = torch.stack(gap_feat_map0, 1)
+        torch.cuda.empty_cache()
 
         return gap_feat_map0

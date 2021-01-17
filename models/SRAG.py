@@ -130,5 +130,6 @@ class SRAG(nn.Module):
 
         aggregative_features = torch.stack(aggregative_feature_list, 1)
         aggregative_features = aggregative_features.view(b * aggregative_features.size(1), -1, h, w)
+        torch.cuda.empty_cache()
 
         return aggregative_features

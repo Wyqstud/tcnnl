@@ -50,7 +50,6 @@ parser.add_argument('--is_mutual_channel_attention', type=str, default='no', cho
 parser.add_argument('--is_mutual_spatial_attention', type=str, default='yes', choices=['yes','no'])
 parser.add_argument('--is_appearance_channel_attention', type=str, default='no', choices=['yes','no'])
 parser.add_argument('--is_appearance_spatial_attention', type=str, default='yes', choices=['yes','no'])
-parser.add_argument('--fix', type=str, default='yes', choices=['yes', 'no'])
 parser.add_argument('--layer_num', type=int, default=3, choices=[1, 2, 3])
 parser.add_argument('--seq_len', type=int, default=8, choices=[4, 8])
 parser.add_argument('--split_id', type=int, default=0)
@@ -115,7 +114,6 @@ def main():
                               is_appearance_channel_attention=args_.is_appearance_channel_attention,
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
                               is_down_channel = args_.is_down_channel,
-                              fix = args_.fix,
                               )
 
     print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
