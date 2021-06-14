@@ -68,7 +68,7 @@ class STAM(nn.Module):
         self.seq_len = seq_len
         self.num_classes = num_classes
         self.plances = 1024
-        self.mid_channel = 256
+        self.mid_channel = 512
         self.layer_num = layer_num
         self.feature_method = feature_method
         self.is_down_channel = is_down_channel
@@ -202,4 +202,4 @@ class STAM(nn.Module):
         if self.training:
             return cls_score, BN_feature_list
         else:
-            return BN_feature_list[1], pids, camid
+            return BN_feature_list[2], pids, camid
