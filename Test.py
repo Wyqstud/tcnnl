@@ -63,7 +63,7 @@ parser.add_argument('--print_rank', type=str, default='no', choices=['yes', 'no'
 parser.add_argument('--print_gram', type=bool, default=False)
 parser.add_argument('--layer_name', type=str, default='layer3', choices=['layer1','layer2', 'layer3', 'down_channel'])
 parser.add_argument('--TSNE', type=bool, default=False)
-parser.add_argument('--device_id', type=str, default='0,1')
+parser.add_argument('--device_id', type=str, default='1')
 
 args_ = parser.parse_args()
 

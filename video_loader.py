@@ -167,15 +167,18 @@ class VideoDataset(Dataset):
             Sample all frames in a video into a list of clips, each clip contains seq_len frames, batch_size needs to be set to 1.
             This sampling strategy is used in test phase.
             """
-            cur_index=0
+            # cur_index=0
             frame_indices = list(range(num))
+            interval = num // self.seq_len
             indices_list=[]
             if num > self.seq_len:
-                while num-cur_index > self.seq_len:
-                    indices_list.append(frame_indices[cur_index:cur_index+self.seq_len])
-                    cur_index+=self.seq_len
+                # while num-cur_index > self.seq_len:
+                #     indices_list.append(frame_indices[cur_index:cur_index+self.seq_len])
+                #     cur_index+=self.seq_len
+                for index in range(interval):
+                    indices_list.append(frame_indices[index : index+interval * self.seq_len : interval])
             else:
-                last_seq = frame_indices[cur_index:]
+                last_seq = frame_indices[0:]
                 for index in last_seq:
                     if len(last_seq) >= self.seq_len:
                         break

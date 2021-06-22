@@ -1,5 +1,5 @@
 python Test.py  --arch 'STAM'\
-                --dataset 'duke'\
+                --dataset 'mars'\
                 --model_spatial_pool 'avg'\
                 --model_temporal_pool 'avg'\
                 --train_sampler 'Begin_interval'\
@@ -19,4 +19,4 @@ python Test.py  --arch 'STAM'\
                 --is_down_channel 'yes'\
                 --print_performance True\
                 --layer_name 'down_channel'\
-                --test_path '/home/wyq/exp/ablation experiment/2021-01-15_11-55-31/rank1_0.95726496_checkpoint_ep350.pth'
+                --test_path '/home/wyq/exp/ablation experiment/2021-06-17_18-48-36/rank1_0.9141414_checkpoint_ep390.pth'

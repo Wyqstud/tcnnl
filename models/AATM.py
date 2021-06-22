@@ -19,10 +19,9 @@ def weights_init_kaiming(m):
 
 class AATM(nn.Module):
 
-    def __init__(self, inplanes, mid_planes,
-                 is_mutual_channel_attention, is_mutual_spatial_attention,
-                 is_appearance_channel_attention, is_appearance_spatial_attention,
-                 num, **kwargs):
+    def __init__(self, inplanes, mid_planes, num,
+                 is_mutual_channel_attention='yes', is_mutual_spatial_attention='yes',
+                 is_appearance_channel_attention='yes', is_appearance_spatial_attention='yes', **kwargs):
 
         super(AATM, self).__init__()
 
@@ -49,18 +48,18 @@ class AATM(nn.Module):
         self.SRAG = SRAG(inplanes=inplanes, is_appearance_spatial_attention=is_appearance_spatial_attention,
                          is_appearance_channel_attention=is_appearance_channel_attention, num=num)
 
-        self.conv_block = nn.Sequential(
-            nn.Conv2d(in_channels=inplanes, out_channels=mid_planes, kernel_size=1, bias=False),
-            nn.BatchNorm2d(mid_planes),
-            self.relu,
-            nn.Conv2d(in_channels=mid_planes, out_channels=mid_planes, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_planes),
-            self.relu,
-            nn.Conv2d(in_channels=mid_planes, out_channels=inplanes, kernel_size=1, bias=False),
-            nn.BatchNorm2d(inplanes),
-            self.relu
-        )
-        self.conv_block.apply(weights_init_kaiming)
+        # self.conv_block = nn.Sequential(
+        #     nn.Conv2d(in_channels=inplanes, out_channels=mid_planes, kernel_size=1, bias=False),
+        #     nn.BatchNorm2d(mid_planes),
+        #     self.relu,
+        #     nn.Conv2d(in_channels=mid_planes, out_channels=mid_planes, kernel_size=3, padding=1, bias=False),
+        #     nn.BatchNorm2d(mid_planes),
+        #     self.relu,
+        #     nn.Conv2d(in_channels=mid_planes, out_channels=inplanes, kernel_size=1, bias=False),
+        #     nn.BatchNorm2d(inplanes),
+        #     self.relu
+        # )
+        # self.conv_block.apply(weights_init_kaiming)
 
     def forward(self, feat_map):
 
@@ -71,7 +70,7 @@ class AATM(nn.Module):
 
         gap_feat_map0 = self.TRAG(feat_map, reshape_map, feat_vect, embed_feat)
         gap_feat_map = self.SRAG(feat_map, reshape_map, embed_feat, feat_vect, gap_feat_map0)
-        gap_feat_map = self.conv_block(gap_feat_map)
+        # gap_feat_map = self.conv_block(gap_feat_map)
         gap_feat_map = gap_feat_map.view(b, -1, c, h, w)
         torch.cuda.empty_cache()
 

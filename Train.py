@@ -18,6 +18,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from tqdm import tqdm
+from torchstat import stat
 
 
 from lr_schedulers import WarmupMultiStepLR
@@ -110,9 +111,9 @@ def main():
                               is_appearance_spatial_attention=args_.is_appearance_spatial_attention,
                               is_down_channel = args_.is_down_channel,
                               )
-    num_params, flops = compute_model_complexity(model, (1, args_.seq_len, 3, 256, 128), verbose=True)
 
-    # print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
+    num_params, flops = compute_model_complexity(model, (1, args_.seq_len, 3, 256, 128), verbose=True)
+    print("Model size: {:.5f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
     transform_train = T.Compose([
         T.resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
