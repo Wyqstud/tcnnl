@@ -3,15 +3,15 @@
 # 说明
 现在想把这个工作改投到期刊上，需要做一些改进和扩容的工作。改进和扩容的工作可以分成以下三个方向进行：
 1）讨论加residual block的意义和重要性。
-%
+
 2）讨论采用之前那个训练方法的重要性。
-%
+
 3）讨论采用不同的reference的重要行。
-%
+
 4）讨论spatical-wise information 和 channel-wise information 结合的更优方法。
-%
+
 5）讨论TRA和SRA更优的结合方式。
-%
+
 6）讨论降低运算量的方法。
 
 # exp1
