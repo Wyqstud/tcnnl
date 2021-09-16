@@ -53,20 +53,20 @@ class TRAG(nn.Module):
             self.beta_temporal.apply(weights_init_kaiming)
 
             self.gg_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=2 * 16 * 8, out_channels=128,
+                nn.Conv2d(in_channels=4 * 16 * 8, out_channels=128,
                           kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(128),
                 self.relu,
             )
             self.gg_temporal.apply(weights_init_kaiming)
 
-            self.tte_para = nn.Sequential(
-                nn.Conv2d(in_channels=2 * 128, out_channels=128,
-                          kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(128),
-                self.relu,
-            )
-            self.tte_para.apply(weights_init_kaiming)
+            # self.tte_para = nn.Sequential(
+            #     nn.Conv2d(in_channels=2 * 128, out_channels=128,
+            #               kernel_size=1, stride=1, padding=0, bias=False),
+            #     nn.BatchNorm2d(128),
+            #     self.relu,
+            # )
+            # self.tte_para.apply(weights_init_kaiming)
 
             self.te_para = nn.Sequential(
                 nn.Conv2d(in_channels=2 * 128, out_channels=1,
@@ -132,16 +132,18 @@ class TRAG(nn.Module):
                 Gs_in1 = Gs1.permute(0, 2, 1).view(b, h * w, h, w)
                 Gs_out1 = Gs1.view(b, h * w, h, w)
 
-                Gs_joint0 = torch.cat((Gs_in0, Gs_out1), 1)
-                Gs_joint0 = self.gg_temporal(Gs_joint0)
-                para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
-                para_alpha = self.te_para(torch.cat((para_alpha, Gs_joint0), 1))
+                Gs_joint = torch.cat((Gs_in0, Gs_in1, Gs_out0, Gs_out1), 1)
+                Gs_joint = self.gg_temporal(Gs_joint)
 
+                # para_alpha = self.tte_para(torch.cat((embed_feat0, embed_feat1), 1))
+                para_alpha = self.te_para(torch.cat((embed_feat0, Gs_joint), 1))
+                # para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
+                para_beta = self.te_para(torch.cat((embed_feat1, Gs_joint), 1))
 
-                Gs_joint1 = torch.cat((Gs_in1, Gs_out0), 1)
-                Gs_joint1 = self.gg_temporal(Gs_joint1)
-                para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
-                para_beta = self.te_para(torch.cat((para_beta, Gs_joint1), 1))
+                # Gs_joint1 = torch.cat((Gs_in1, Gs_out0), 1)
+                # Gs_joint1 = self.gg_temporal(Gs_joint1)
+                # para_beta = self.tte_para(torch.cat((embed_feat1, embed_feat0), 1))
+                # para_beta = self.te_para(torch.cat((para_beta, Gs_joint1), 1))
 
             if self.is_mutual_spatial_attention == 'yes' and self.is_mutual_channel_attention == 'yes':
                 para_00 = para_00 * para_alpha
@@ -160,7 +162,7 @@ class TRAG(nn.Module):
                 para_01 = 1
 
             gap_map0 = para_00 * featmap[:, idx, :, :, :] + para_01 * featmap[:, idx + 1, :, :, :]
-            gap_map0 = self.relu(gap_map0)
+            # gap_map0 = self.relu(gap_map0)
             gap_map0 = gap_map0 ** 2
             gap_feat_map0.append(gap_map0)
 

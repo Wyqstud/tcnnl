@@ -3,7 +3,7 @@ python Test.py  --arch 'STAM'\
                 --model_spatial_pool 'avg'\
                 --model_temporal_pool 'avg'\
                 --train_sampler 'Begin_interval'\
-                --test_sampler 'Begin_interval'\
+                --test_sampler 'dense'\
                 --transform_method 'consecutive'\
                 --sampler_method 'random'\
                 --triplet_distance 'cosine'\
@@ -16,7 +16,7 @@ python Test.py  --arch 'STAM'\
                 --is_appearance_spatial_attention 'yes'\
                 --layer_num 3 \
                 --seq_len 8 \
-                --is_down_channel 'yes'\
+                --is_down_channel 'no'\
                 --print_performance True\
                 --layer_name 'down_channel'\
-                --test_path '/home/wyq/exp/ablation experiment/2021-09-14_11-15-22/rank1_0.91565657_checkpoint_ep250.pth'
+                --test_path '/home/wyq/exp/ablation experiment/2021-09-16_00-54-29/rank1_0.9080808_checkpoint_ep320.pth'

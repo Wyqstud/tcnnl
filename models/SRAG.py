@@ -126,7 +126,7 @@ class SRAG(nn.Module):
                 aggregative_feature_list.append(self.relu(para_1 * feat_map[:, i + 1, :, :, :]))
 
             else:
-                aggregative_feature_list.append(aggregative_feature[:, int(i/2), :, :, :] + self.relu(para_0 * feat_map[:, i, :, :, :] + para_1 * feat_map[:, i + 1, :, :, :]) + feat_map[:, i, :, :, :] + feat_map[:, i+1, :, :, :])
+                aggregative_feature_list.append(aggregative_feature[:, int(i/2), :, :, :] + para_0 * feat_map[:, i, :, :, :] + para_1 * feat_map[:, i + 1, :, :, :] + feat_map[:, i, :, :, :] + feat_map[:, i+1, :, :, :])
 
         aggregative_features = torch.stack(aggregative_feature_list, 1)
         aggregative_features = aggregative_features.view(b * aggregative_features.size(1), -1, h, w)

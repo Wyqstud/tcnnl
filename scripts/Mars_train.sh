@@ -18,7 +18,7 @@ python Train.py   --arch 'STAM'\
                   --is_appearance_spatial_attention 'yes'\
                   --layer_num 3 \
                   --seq_len 8 \
-                  --is_down_channel 'yes'\
+                  --is_down_channel 'no'\
                   --sampler 'RandomIdentitySampler'\
 
 
