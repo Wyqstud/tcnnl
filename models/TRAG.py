@@ -37,17 +37,17 @@ class TRAG(nn.Module):
             print('Build ' + self.num + ' layer mutual spatial attention!')
 
             self.gamma_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 8)),
+                nn.BatchNorm2d(int(inplanes / 16)),
                 self.relu
             )
             self.gamma_temporal.apply(weights_init_kaiming)
 
             self.beta_temporal = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 8)),
+                nn.BatchNorm2d(int(inplanes / 16)),
                 self.relu
             )
             self.beta_temporal.apply(weights_init_kaiming)
@@ -79,21 +79,18 @@ class TRAG(nn.Module):
         if self.is_mutual_channel_attention == 'yes':
 
             print('Build ' + self.num + ' layer mutual channel attention!')
-
+            self.mid_channel = int(self.inplanes / 16)
             self.theta_channel = nn.Sequential(
-                nn.Conv1d(in_channels=inplanes, out_channels=int(inplanes / 8),
-                          kernel_size=1, stride=1, padding=0, bias=False),
+                nn.Linear(in_features=2 * inplanes, out_features=2 * self.mid_channel),
                 self.relu,
             )
             self.theta_channel.apply(weights_init_kaiming)
 
-            self.channel_para = nn.Sequential(
-                nn.Linear(in_features=int(inplanes / 4), out_features=int(inplanes / 8)),
-                self.relu,
-                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
-                nn.Sigmoid()
+            self.channel_para_1 = nn.Sequential(
+                nn.Linear(in_features=self.mid_channel, out_features=int(inplanes)),
+                nn.Sigmoid(),
             )
-            self.channel_para.apply(weights_init_kaiming)
+            self.channel_para_1.apply(weights_init_kaiming)
 
     def forward(self, featmap, re_featmap, vect_featmap, embed_feat):
 
@@ -104,17 +101,18 @@ class TRAG(nn.Module):
             beta_feat = self.beta_temporal(re_featmap).view(b, t, -1, h * w)
 
         if self.is_mutual_channel_attention == 'yes':
-            channel_para = self.theta_channel(vect_featmap.permute(0, 2, 1))
+            # channel_paras = self.theta_channel(vect_featmap.permute(0, 2, 1))
+            vect_featmap = vect_featmap.permute(0, 2, 1)
 
         gap_feat_map0 = []
 
         for idx in range(0, t, 2):
 
             if self.is_mutual_channel_attention == 'yes':
-                para0 = torch.cat((channel_para[:, :, idx], channel_para[:, :, idx + 1]), 1)
-                para_00 = self.channel_para(para0).view(b, -1, 1, 1)
-                para1 = torch.cat((channel_para[:, :, idx + 1], channel_para[:, :, idx]), 1)
-                para_01 = self.channel_para(para1).view(b, -1, 1, 1)
+                channel_para = torch.cat((vect_featmap[:, :, idx], vect_featmap[:, :, idx+1]), 1)
+                channel_para = self.theta_channel(channel_para)
+                para_00 = self.channel_para_1(channel_para[:, :int(self.inplanes/16)]).view(b, -1, 1, 1)
+                para_01 = self.channel_para_1(channel_para[:, int(self.inplanes/16):]).view(b, -1, 1, 1)
 
             if self.is_mutual_spatial_attention == 'yes':
                 embed_feat0 = embed_feat[:, idx, :, :, :]

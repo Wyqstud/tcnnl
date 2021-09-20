@@ -16,7 +16,7 @@ INPUT:
 DATASETS:
   SEQ_LEN: 8
   NAME : 'ilidsvid'
-  ROOT_DIR : '/home/wyq/dataset/'
+  ROOT_DIR : '/home/wyq/my_data/dataset/Video_ReID'
   TRAIN_SAMPLE_METHOD : "Random_interval"
   TEST_SAMPLE_METHOD : "Begin_interval"
 

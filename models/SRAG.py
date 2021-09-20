@@ -37,17 +37,17 @@ class SRAG(nn.Module):
             print('Build ' + self.num + ' layer appearance spatial attention!')
 
             self.alphi_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes/16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes/8)),
+                nn.BatchNorm2d(int(inplanes/16)),
                 self.relu
             )
             self.alphi_appearance.apply(weights_init_kaiming)
 
             self.delta_appearance = nn.Sequential(
-                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 8),
+                nn.Conv2d(in_channels=inplanes, out_channels=int(inplanes / 16),
                           kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(int(inplanes / 8)),
+                nn.BatchNorm2d(int(inplanes / 16)),
                 self.relu
             )
             self.delta_appearance.apply(weights_init_kaiming)
@@ -75,9 +75,9 @@ class SRAG(nn.Module):
         if self.is_appearance_channel_attention == 'yes':
             print('Build ' + self.num + ' layer appearacne channel attention!')
             self.app_channel = nn.Sequential(
-                nn.Linear(in_features=inplanes, out_features=int(inplanes / 8)),
+                nn.Linear(in_features=inplanes, out_features=int(inplanes / 16)),
                 self.relu,
-                nn.Linear(in_features=int(inplanes / 8), out_features=inplanes),
+                nn.Linear(in_features=int(inplanes / 16), out_features=inplanes),
                 self.sigmoid
             )
             self.app_channel.apply(weights_init_kaiming)
