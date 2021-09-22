@@ -19,4 +19,4 @@ python Test.py  --arch 'STAM'\
                 --is_down_channel 'no'\
                 --print_performance True\
                 --layer_name 'down_channel'\
-                --test_path '/home/wyq/exp/ablation experiment/2021-09-19_18-11-55/rank1_0.90656567_checkpoint_ep480.pth'
+                --test_path '/home/wyq/exp/ablation experiment/'

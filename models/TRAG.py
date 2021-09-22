@@ -81,7 +81,7 @@ class TRAG(nn.Module):
             print('Build ' + self.num + ' layer mutual channel attention!')
             self.mid_channel = int(self.inplanes / 16)
             self.theta_channel = nn.Sequential(
-                nn.Linear(in_features=2 * inplanes, out_features=2 * self.mid_channel),
+                nn.Linear(in_features=inplanes, out_features=2 * self.mid_channel),
                 self.relu,
             )
             self.theta_channel.apply(weights_init_kaiming)
@@ -109,7 +109,7 @@ class TRAG(nn.Module):
         for idx in range(0, t, 2):
 
             if self.is_mutual_channel_attention == 'yes':
-                channel_para = torch.cat((vect_featmap[:, :, idx], vect_featmap[:, :, idx+1]), 1)
+                channel_para = vect_featmap[:, :, idx] + vect_featmap[:, :, idx+1]
                 channel_para = self.theta_channel(channel_para)
                 para_00 = self.channel_para_1(channel_para[:, :int(self.inplanes/16)]).view(b, -1, 1, 1)
                 para_01 = self.channel_para_1(channel_para[:, int(self.inplanes/16):]).view(b, -1, 1, 1)

@@ -221,3 +221,13 @@ def DeepSupervision(criterion , xs, y):
         loss += criterion(x, y)
     loss /= len(xs)
     return loss
+
+def ListFile(filepath):
+    FileNames = []
+    files = os.listdir(filepath)
+    for file in files:
+        file = os.path.join(filepath, file)
+        suffix = file.split('.')[-1]
+        if suffix == 'pth':
+            FileNames.append(os.path.join(filepath, file))
+    return FileNames

@@ -5,7 +5,7 @@ python Train.py   --arch 'STAM'\
                   --model_spatial_pool 'avg'\
                   --model_temporal_pool 'avg'\
                   --train_sampler 'Random_interval'\
-                  --test_sampler 'Begin_interval'\
+                  --test_sampler 'dense'\
                   --transform_method 'consecutive'\
                   --sampler_method 'random'\
                   --triplet_distance 'cosine'\

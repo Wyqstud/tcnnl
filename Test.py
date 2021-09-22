@@ -24,7 +24,7 @@ from lr_schedulers import WarmupMultiStepLR
 import transforms as T
 import models
 from losses import CrossEntropyLabelSmooth, TripletLoss, CosineTripletLoss
-from utils import AverageMeter, Logger, EMA, make_optimizer, DeepSupervision
+from utils import  Logger, ListFile
 from eval_metrics import evaluate_reranking
 from config import cfg
 from torch.optim import lr_scheduler
@@ -184,34 +184,73 @@ def main():
 
     start_time = time.time()
 
-    print("Loading checkpoint from '{}'".format(args_.test_path))
-    model_analysis = MA(cfg.OUTPUT_DIR)
+    if os.path.isdir(args_.test_path):
 
-    print("load model... ")
-    checkpoint = torch.load(args_.test_path)
-    model.load_state_dict(checkpoint)
+        PathList = ListFile(args_.test_path)
+        for test_path in PathList:
+            print(test_path)
+            print("Loading checkpoint from '{}'".format(test_path))
+            model_analysis = MA(cfg.OUTPUT_DIR)
 
-    print("Evaluate...")
-    if args_.print_performance :
-        q_g_dist = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu, cfg.DATASETS.NAME)
+            print("load model... ")
+            checkpoint = torch.load(test_path)
+            model.load_state_dict(checkpoint)
 
-    if args_.print_heat == 'yes':
-        print("print heat map!")
-        if args_.anaysis_query == 'yes':
-            model_analysis.heat_map(queryloader, model, 'query', args_.dataset)
-        elif args_.anaysis_gallery == 'yes':
-            model_analysis.heat_map(galleryloader, model, 'gallery')
+            print("Evaluate...")
+            if args_.print_performance :
+                q_g_dist = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu, cfg.DATASETS.NAME)
 
-    if args_.print_rank == 'yes':
-        print("Build rank images!")
-        model_analysis.visualize_ranked_results(q_g_dist, dataset, data_type="video")
+            if args_.print_heat == 'yes':
+                print("print heat map!")
+                if args_.anaysis_query == 'yes':
+                    model_analysis.heat_map(queryloader, model, 'query', args_.dataset)
+                elif args_.anaysis_gallery == 'yes':
+                    model_analysis.heat_map(galleryloader, model, 'gallery')
 
-    if args_.print_gram :
-        print("Build gram picture!")
-        model_analysis.Gram(model=model.module, loader = trainloader, layer_name = args_.layer_name)
+            if args_.print_rank == 'yes':
+                print("Build rank images!")
+                model_analysis.visualize_ranked_results(q_g_dist, dataset, data_type="video")
 
-    if args_.TSNE :
-        pass
+            if args_.print_gram :
+                print("Build gram picture!")
+                model_analysis.Gram(model=model.module, loader = trainloader, layer_name = args_.layer_name)
+
+            if args_.TSNE :
+                pass
+
+    else:
+
+        test_path = args_.test_path
+        print("Loading checkpoint from '{}'".format(test_path))
+        model_analysis = MA(cfg.OUTPUT_DIR)
+
+        print("load model... ")
+        checkpoint = torch.load(test_path)
+        model.load_state_dict(checkpoint)
+
+        print("Evaluate...")
+        if args_.print_performance:
+            q_g_dist = test(model, queryloader, galleryloader, cfg.TEST.TEMPORAL_POOL_METHOD, use_gpu,
+                            cfg.DATASETS.NAME)
+
+        if args_.print_heat == 'yes':
+            print("print heat map!")
+            if args_.anaysis_query == 'yes':
+                model_analysis.heat_map(queryloader, model, 'query', args_.dataset)
+            elif args_.anaysis_gallery == 'yes':
+                model_analysis.heat_map(galleryloader, model, 'gallery')
+
+        if args_.print_rank == 'yes':
+            print("Build rank images!")
+            model_analysis.visualize_ranked_results(q_g_dist, dataset, data_type="video")
+
+        if args_.print_gram:
+            print("Build gram picture!")
+            model_analysis.Gram(model=model.module, loader=trainloader, layer_name=args_.layer_name)
+
+        if args_.TSNE:
+            pass
+
 
     elapsed = round(time.time() - start_time)
     elapsed = str(datetime.timedelta(seconds=elapsed))
